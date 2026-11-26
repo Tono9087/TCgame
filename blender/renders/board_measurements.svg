@@ -1,0 +1,112 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 760" width="1200" height="760" font-family="DejaVu Sans, Arial, sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1.5 L 10 5 L 0 8.5 z" fill="#38bdf8" />
+    </marker>
+    <marker id="arrow-gold" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1.5 L 10 5 L 0 8.5 z" fill="#facc15" />
+    </marker>
+    <marker id="arrow-orange" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1.5 L 10 5 L 0 8.5 z" fill="#fb923c" />
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="760" fill="#0f172a" />
+
+  <!-- Title -->
+  <text x="600" y="42" text-anchor="middle" fill="#f8fafc" font-size="24" font-weight="bold">
+    Hex Heist — Medidas del Tablero y Hexágonos (56 cm × 34 cm)
+  </text>
+
+  <!-- ==================== PANEL 1: FULL BOARD ==================== -->
+  <g transform="translate(60, 95)">
+    <text x="280" y="-12" text-anchor="middle" fill="#94a3b8" font-size="15" font-weight="bold">
+      TABLERO COMPLETO (Escala 1 cm = 10 px)
+    </text>
+
+    <!-- Board 560 x 340 -->
+    <rect x="0" y="0" width="560" height="340" rx="10" fill="#ebe5d8" stroke="#64748b" stroke-width="3" />
+
+    <!-- Grid footprint 550 x 317.54 centered -->
+    <rect x="5" y="11.23" width="550" height="317.54" fill="rgba(56, 189, 248, 0.14)" stroke="#0284c7" stroke-width="2" stroke-dasharray="6,4" />
+    <text x="280" y="165" text-anchor="middle" fill="#0f172a" font-size="18" font-weight="bold">Cuadrícula Hexagonal</text>
+    <text x="280" y="190" text-anchor="middle" fill="#0369a1" font-size="16" font-weight="bold">55.00 cm × 31.75 cm</text>
+    <text x="280" y="214" text-anchor="middle" fill="#475569" font-size="13">(7 filas: 10-11-10-11-10-11-10 = 73 hexágonos)</text>
+
+    <!-- Margin labels -->
+    <text x="280" y="29" text-anchor="middle" fill="#b45309" font-size="11.5" font-weight="bold">Margen sup/inf: 1.12 cm</text>
+    <text x="20" y="170" text-anchor="middle" fill="#b45309" font-size="11.5" font-weight="bold" transform="rotate(-90, 20, 170)">Margen izq/der: 0.50 cm</text>
+
+    <!-- Width Dimension Line (56 cm) -->
+    <line x1="0" y1="365" x2="560" y2="365" stroke="#38bdf8" stroke-width="2" marker-start="url(#arrow)" marker-end="url(#arrow)" />
+    <line x1="0" y1="344" x2="0" y2="375" stroke="#38bdf8" stroke-width="1.5" />
+    <line x1="560" y1="344" x2="560" y2="375" stroke="#38bdf8" stroke-width="1.5" />
+    <rect x="225" y="352" width="110" height="24" rx="5" fill="#0f172a" />
+    <text x="280" y="369" text-anchor="middle" fill="#38bdf8" font-size="16" font-weight="bold">56.00 cm</text>
+
+    <!-- Height Dimension Line (34 cm) -->
+    <line x1="588" y1="0" x2="588" y2="340" stroke="#38bdf8" stroke-width="2" marker-start="url(#arrow)" marker-end="url(#arrow)" />
+    <line x1="564" y1="0" x2="598" y2="0" stroke="#38bdf8" stroke-width="1.5" />
+    <line x1="564" y1="340" x2="598" y2="340" stroke="#38bdf8" stroke-width="1.5" />
+    <rect x="543" y="156" width="90" height="24" rx="5" fill="#0f172a" />
+    <text x="588" y="173" text-anchor="middle" fill="#38bdf8" font-size="16" font-weight="bold">34.00 cm</text>
+  </g>
+
+  <!-- ==================== PANEL 2: REGULAR HEXAGON ==================== -->
+  <g transform="translate(880, 210)">
+    <rect x="-185" y="-140" width="370" height="330" rx="14" fill="#1e293b" stroke="#334155" stroke-width="2" />
+    <text x="0" y="-110" text-anchor="middle" fill="#f8fafc" font-size="17" font-weight="bold">HEXÁGONO REGULAR (Calle / Robo)</text>
+
+    <!-- Pointy-top Hex: R = 85 px (representing 2.89 cm), W = 147.2 px (5.00 cm), H = 170 px (5.77 cm) -->
+    <!-- Vertices for R=85: (0,-85), (73.61,-42.5), (73.61,42.5), (0,85), (-73.61,42.5), (-73.61,-42.5) -->
+    <polygon points="0,-85 73.61,-42.5 73.61,42.5 0,85 -73.61,42.5 -73.61,-42.5"
+             fill="#e5dfd2" stroke="#94a3b8" stroke-width="3" />
+    <circle cx="0" cy="0" r="3.5" fill="#0f172a" />
+
+    <!-- Side length highlight (top-right edge) -->
+    <line x1="0" y1="-85" x2="73.61" y2="-42.5" stroke="#facc15" stroke-width="4" />
+    <text x="58" y="-76" fill="#facc15" font-size="14" font-weight="bold">Lado = 2.89 cm</text>
+
+    <!-- Radius R line (center to bottom-right vertex) -->
+    <line x1="0" y1="0" x2="73.61" y2="42.5" stroke="#ef4444" stroke-width="2.5" stroke-dasharray="5,3" />
+    <text x="42" y="14" fill="#b91c1c" font-size="13" font-weight="bold">R = 2.89 cm</text>
+
+    <!-- Flat-to-flat width (5.00 cm) -->
+    <line x1="-73.61" y1="112" x2="73.61" y2="112" stroke="#38bdf8" stroke-width="2" marker-start="url(#arrow)" marker-end="url(#arrow)" />
+    <line x1="-73.61" y1="45" x2="-73.61" y2="120" stroke="#38bdf8" stroke-width="1.2" stroke-dasharray="3,3" />
+    <line x1="73.61" y1="45" x2="73.61" y2="120" stroke="#38bdf8" stroke-width="1.2" stroke-dasharray="3,3" />
+    <text x="0" y="135" text-anchor="middle" fill="#38bdf8" font-size="15" font-weight="bold">Ancho: 5.00 cm</text>
+
+    <!-- Point-to-point height (5.77 cm) -->
+    <line x1="-112" y1="-85" x2="-112" y2="85" stroke="#facc15" stroke-width="2" marker-start="url(#arrow-gold)" marker-end="url(#arrow-gold)" />
+    <line x1="0" y1="-85" x2="-120" y2="-85" stroke="#facc15" stroke-width="1.2" stroke-dasharray="3,3" />
+    <line x1="0" y1="85" x2="-120" y2="85" stroke="#facc15" stroke-width="1.2" stroke-dasharray="3,3" />
+    <text x="-126" y="4" text-anchor="middle" fill="#facc15" font-size="15" font-weight="bold" transform="rotate(-90, -126, 4)">Alto: 5.77 cm</text>
+  </g>
+
+  <!-- ==================== PANEL 3: SUMMARY & CORNER HEXAGON ==================== -->
+  <g transform="translate(60, 505)">
+    <rect x="0" y="0" width="560" height="215" rx="14" fill="#1e293b" stroke="#334155" stroke-width="2" />
+    <text x="24" y="34" fill="#f8fafc" font-size="17" font-weight="bold">RESUMEN DE MEDIDAS EXACTAS</text>
+    <text x="24" y="66" fill="#cbd5e1" font-size="14">• Tablero total: <tspan fill="#38bdf8" font-weight="bold">56.00 cm × 34.00 cm</tspan></text>
+    <text x="24" y="94" fill="#cbd5e1" font-size="14">• Hexágono regular (ancho × alto): <tspan fill="#38bdf8" font-weight="bold">5.00 cm × 5.77 cm</tspan></text>
+    <text x="24" y="122" fill="#cbd5e1" font-size="14">• Cada uno de los 6 lados (L = R): <tspan fill="#facc15" font-weight="bold">2.89 cm</tspan> (5 / √3 cm)</text>
+    <text x="24" y="150" fill="#cbd5e1" font-size="14">• Hexágono de esquina (1.15×): <tspan fill="#fb923c" font-weight="bold">5.75 cm × 6.64 cm</tspan> (lado: 3.32 cm)</text>
+    <text x="24" y="178" fill="#cbd5e1" font-size="14">• Separación entre fichas en 3D: escala <tspan fill="#e2e8f0" font-weight="bold">0.965</tspan> (4.83 cm × 5.57 cm)</text>
+  </g>
+
+  <g transform="translate(880, 612)">
+    <rect x="-185" y="-107" width="370" height="215" rx="14" fill="#1e293b" stroke="#334155" stroke-width="2" />
+    <text x="0" y="-76" text-anchor="middle" fill="#fb923c" font-size="16" font-weight="bold">HEXÁGONO DE ESQUINA (1.15×)</text>
+
+    <!-- Corner Hex scaled down visually -->
+    <polygon points="0,-58 50.2,-29 50.2,29 0,58 -50.2,29 -50.2,-29"
+             fill="#f97316" stroke="#c2410c" stroke-width="3" />
+    <text x="0" y="5" text-anchor="middle" fill="#ffffff" font-size="12" font-weight="bold">START</text>
+
+    <!-- Labels -->
+    <text x="72" y="-32" fill="#fb923c" font-size="13.5" font-weight="bold">Lado: 3.32 cm</text>
+    <text x="0" y="84" text-anchor="middle" fill="#38bdf8" font-size="14" font-weight="bold">Ancho: 5.75 cm  |  Alto: 6.64 cm</text>
+  </g>
+</svg>

@@ -1,0 +1,8 @@
+# Local AI / editor settings
+.claude/
+.DS_Store
+Thumbs.db
+
+# Blender backup files
+*.blend1
+*.blend2

@@ -1,0 +1,2090 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hex Heist Board Game (56 cm × 34 cm)</title>
+  <style>
+    :root {
+      --bg-table: #181c24;
+      --bg-panel: #222733;
+      --border-panel: #323949;
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --accent-blue: #3b82f6;
+      --accent-orange: #f97316;
+      --accent-red: #ef4444;
+      --accent-gold: #facc15;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
+      background: radial-gradient(circle at 50% 35%, #232936 0%, var(--bg-table) 100%);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 12px 16px;
+      gap: 10px;
+      user-select: none;
+    }
+
+    /* Top HUD Bar */
+    .hud-bar {
+      width: 100%;
+      max-width: 1160px;
+      background: var(--bg-panel);
+      border: 2px solid var(--border-panel);
+      border-radius: 12px;
+      padding: 10px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .hud-bar.turn-police {
+      border-color: #3b82f6;
+      box-shadow: 0 8px 28px rgba(37, 99, 235, 0.28);
+    }
+
+    .hud-bar.turn-thief {
+      border-color: #f97316;
+      box-shadow: 0 8px 28px rgba(249, 115, 22, 0.28);
+    }
+
+    .active-turn-badge {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: #ffffff;
+      white-space: nowrap;
+    }
+
+    .active-turn-badge.police {
+      background: linear-gradient(135deg, #2563eb, #1d4ed8);
+      box-shadow: 0 0 12px rgba(59, 130, 246, 0.45);
+    }
+
+    .active-turn-badge.thief {
+      background: linear-gradient(135deg, #f97316, #c2410c);
+      box-shadow: 0 0 12px rgba(249, 115, 22, 0.45);
+    }
+
+    .active-turn-badge.sandbox {
+      background: #0f766e;
+    }
+
+    .hud-top-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .hud-title-group {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .hud-title {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .hud-subtitle {
+      font-size: 11.5px;
+      color: var(--text-muted);
+    }
+
+    /* Stolen Money Progress */
+    .vault-box {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 220px;
+      background: #1a1e28;
+      border: 1px solid #2e3545;
+      border-radius: 9px;
+      padding: 6px 11px;
+    }
+
+    .vault-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      font-size: 11.5px;
+      font-weight: 700;
+    }
+
+    .vault-amount {
+      color: #fca5a5;
+      font-size: 13px;
+    }
+
+    .vault-bar-bg {
+      width: 100%;
+      height: 7px;
+      background: #2b3242;
+      border-radius: 99px;
+      overflow: hidden;
+    }
+
+    .vault-bar-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #f97316, #ef4444, #facc15);
+      border-radius: 99px;
+      transition: width 0.3s ease;
+    }
+
+    /* Turn & Dice Control */
+    .turn-dice-box {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: #1a1e28;
+      border: 1px solid #2e3545;
+      border-radius: 9px;
+      padding: 6px 10px;
+    }
+
+    .turn-order-pills {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .turn-pill {
+      font-size: 11px;
+      font-weight: 800;
+      padding: 4px 7px;
+      border-radius: 6px;
+      opacity: 0.45;
+      border: 1.5px solid transparent;
+      transition: all 0.15s;
+    }
+
+    .turn-pill.police {
+      background: #1e3a8a;
+      color: #dbeafe;
+    }
+
+    .turn-pill.thief {
+      background: #7c2d12;
+      color: #ffedd5;
+    }
+
+    .turn-pill.active {
+      opacity: 1;
+      border-color: var(--accent-gold);
+      transform: scale(1.06);
+      box-shadow: 0 0 8px rgba(250, 204, 21, 0.35);
+    }
+
+    .dice-face {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      background: #f8fafc;
+      color: #0f172a;
+      font-size: 18px;
+      font-weight: 900;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: inset 0 -2px 0 #cbd5e1, 0 2px 6px rgba(0, 0, 0, 0.4);
+      flex-shrink: 0;
+    }
+
+    .dice-face.rolling {
+      animation: diceShake 0.25s infinite;
+    }
+
+    @keyframes diceShake {
+      0%, 100% { transform: rotate(0deg); }
+      25% { transform: rotate(-10deg) scale(1.05); }
+      75% { transform: rotate(10deg) scale(1.05); }
+    }
+
+    .hud-actions {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      background: #2e3646;
+      color: #f8fafc;
+      border: 1px solid #424c61;
+      border-radius: 8px;
+      padding: 7px 11px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s, opacity 0.15s;
+    }
+
+    .btn:hover:not(:disabled) {
+      background: #3b4559;
+      border-color: #5b6782;
+    }
+
+    .btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .btn-primary {
+      background: #2563eb;
+      border-color: #3b82f6;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: #1d4ed8;
+    }
+
+    .btn-jail {
+      background: #b45309;
+      border-color: #d97706;
+    }
+
+    .btn-jail:hover:not(:disabled) {
+      background: #92400e;
+    }
+
+    .btn-reset {
+      background: #7f1d1d;
+      border-color: #991b1b;
+    }
+
+    .btn-reset:hover:not(:disabled) {
+      background: #991b1b;
+      border-color: #b91c1c;
+    }
+
+    .btn-active-mode {
+      background: #0f766e;
+      border-color: #14b8a6;
+    }
+
+    /* Figure Cards Row */
+    .hud-bottom-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .hud-figures {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      flex: 1;
+    }
+
+    .figure-card {
+      background: #1a1e28;
+      border: 1.5px solid #2e3545;
+      border-radius: 9px;
+      padding: 5px 9px;
+      min-width: 170px;
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      opacity: 0.6;
+      transition: border-color 0.15s, background 0.15s, opacity 0.15s, transform 0.15s;
+    }
+
+    .figure-card.active-turn {
+      opacity: 1;
+      border-color: var(--accent-gold);
+      background: #283042;
+      transform: translateY(-1px);
+      box-shadow: 0 0 0 1.5px rgba(250, 204, 21, 0.35);
+    }
+
+    .figure-card.active-turn.police-turn {
+      border-color: #60a5fa;
+      box-shadow: 0 0 12px rgba(59, 130, 246, 0.35);
+    }
+
+    .figure-card.active-turn.thief-turn {
+      border-color: #fb923c;
+      box-shadow: 0 0 12px rgba(249, 115, 22, 0.35);
+    }
+
+    .turn-tag {
+      margin-left: auto;
+      font-size: 9.5px;
+      font-weight: 800;
+      padding: 2px 6px;
+      border-radius: 5px;
+      background: #facc15;
+      color: #0f172a;
+      letter-spacing: 0.04em;
+      flex-shrink: 0;
+    }
+
+    .figure-dot {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10.5px;
+      font-weight: 800;
+      color: #fff;
+      flex-shrink: 0;
+      border: 2px solid rgba(255, 255, 255, 0.85);
+    }
+
+    .figure-dot.police.p1 {
+      background: linear-gradient(135deg, #2563eb, #1e40af);
+    }
+
+    .figure-dot.police.p2 {
+      background: linear-gradient(135deg, #0ea5e9, #0369a1);
+      border-radius: 7px;
+    }
+
+    .figure-dot.thief.t1 {
+      background: linear-gradient(135deg, #f97316, #c2410c);
+    }
+
+    .figure-dot.thief.t2 {
+      background: linear-gradient(135deg, #f59e0b, #b45309);
+      border-radius: 7px;
+    }
+
+    .figure-info {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+      min-width: 0;
+    }
+
+    .figure-pos {
+      font-size: 11.5px;
+      font-weight: 600;
+      color: #e2e8f0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .figure-heist {
+      font-size: 10.5px;
+      color: var(--text-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .figure-heist.on-heist {
+      color: #fca5a5;
+      font-weight: 600;
+    }
+
+    .figure-heist.jailed {
+      color: #fbbf24;
+      font-weight: 700;
+    }
+
+    .status-log {
+      font-size: 12px;
+      color: #cbd5e1;
+      background: #161a22;
+      border: 1px solid #2b3242;
+      border-radius: 8px;
+      padding: 6px 10px;
+      min-width: 260px;
+      max-width: 380px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Board Container */
+    .board-wrapper {
+      width: 100%;
+      max-width: 1260px;
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      position: relative;
+    }
+
+    svg#board {
+      flex: 1;
+      min-width: 0;
+      width: 100%;
+      max-height: calc(100vh - 195px);
+      height: auto;
+      aspect-ratio: 56 / 34;
+      border-radius: 10px;
+      box-shadow: 0 18px 48px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.08);
+      background: #ede8dc;
+      touch-action: none;
+    }
+
+    /* Big Side Dice Panel */
+    .side-dice-panel {
+      width: 168px;
+      flex-shrink: 0;
+      background: var(--bg-panel);
+      border: 2px solid var(--border-panel);
+      border-radius: 14px;
+      padding: 16px 14px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .side-dice-panel.turn-police {
+      border-color: #3b82f6;
+      box-shadow: 0 12px 32px rgba(37, 99, 235, 0.25);
+    }
+
+    .side-dice-panel.turn-thief {
+      border-color: #f97316;
+      box-shadow: 0 12px 32px rgba(249, 115, 22, 0.25);
+    }
+
+    .side-dice-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+    }
+
+    .side-dice-big {
+      width: 116px;
+      height: 116px;
+      border-radius: 20px;
+      background: #f8fafc;
+      color: #0f172a;
+      font-size: 74px;
+      font-weight: 900;
+      line-height: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: inset 0 -5px 0 #cbd5e1, 0 8px 20px rgba(0, 0, 0, 0.45);
+      transition: transform 0.15s;
+    }
+
+    .side-dice-big.rolling {
+      animation: diceShake 0.25s infinite;
+    }
+
+    .side-dice-sub {
+      font-size: 12px;
+      font-weight: 600;
+      color: #cbd5e1;
+      text-align: center;
+      min-height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    @media (max-width: 900px) {
+      .board-wrapper {
+        flex-direction: column;
+      }
+      .side-dice-panel {
+        width: 100%;
+        flex-direction: row;
+        justify-content: space-between;
+        padding: 10px 16px;
+      }
+      .side-dice-big {
+        width: 68px;
+        height: 68px;
+        font-size: 42px;
+        border-radius: 12px;
+      }
+    }
+
+    /* Hex Styles */
+    .hex-shape {
+      cursor: pointer;
+      transition: filter 0.12s ease, stroke-width 0.12s ease;
+    }
+
+    .hex-shape:hover {
+      filter: brightness(1.06);
+    }
+
+    .hex-shape.reachable {
+      stroke: #22c55e !important;
+      stroke-width: 3.2px !important;
+      filter: brightness(1.1);
+    }
+
+    .hex-shape.drop-target {
+      stroke: #facc15 !important;
+      stroke-width: 3.5px !important;
+      filter: brightness(1.12);
+    }
+
+    .hex-coord {
+      font-size: 8.5px;
+      fill: #78716c;
+      font-weight: 600;
+      pointer-events: none;
+      text-anchor: middle;
+      transition: opacity 0.15s;
+    }
+
+    .hide-coords .hex-coord {
+      opacity: 0;
+    }
+
+    .hex-label-title {
+      font-size: 10.5px;
+      font-weight: 800;
+      fill: #ffffff;
+      text-anchor: middle;
+      pointer-events: none;
+      letter-spacing: 0.03em;
+    }
+
+    .hex-label-sub {
+      font-size: 9.5px;
+      font-weight: 700;
+      fill: rgba(255, 255, 255, 0.92);
+      text-anchor: middle;
+      pointer-events: none;
+    }
+
+    .comandancia-label {
+      font-size: 12.5px;
+      font-weight: 800;
+      fill: #f1f5f9;
+      text-anchor: middle;
+      letter-spacing: 0.08em;
+      pointer-events: none;
+    }
+
+    .comandancia-sub {
+      font-size: 9px;
+      font-weight: 600;
+      fill: #94a3b8;
+      text-anchor: middle;
+      pointer-events: none;
+    }
+
+    /* Tokens */
+    .token-group {
+      cursor: pointer;
+      opacity: 0.65;
+      transition: transform 0.16s ease, opacity 0.16s ease;
+    }
+
+    .token-group.selected {
+      opacity: 1;
+    }
+
+    .token-group.dragging {
+      transition: none;
+      opacity: 0.9;
+      cursor: grabbing;
+    }
+
+    .token-ring {
+      fill: none;
+      stroke: #facc15;
+      stroke-width: 3.5;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .token-group.selected .token-ring {
+      opacity: 1;
+      animation: pulseRing 1.4s infinite ease-in-out;
+    }
+
+    .token-turn-marker {
+      fill: #facc15;
+      stroke: #111827;
+      stroke-width: 1.6;
+      stroke-linejoin: round;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .token-group.selected .token-turn-marker {
+      opacity: 1;
+      animation: bounceMarker 1s infinite ease-in-out;
+    }
+
+    @keyframes bounceMarker {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-4px); }
+    }
+
+    @keyframes pulseRing {
+      0%, 100% { stroke-opacity: 1; }
+      50% { stroke-opacity: 0.4; }
+    }
+
+    /* Tooltip */
+    #tooltip {
+      position: fixed;
+      pointer-events: none;
+      background: rgba(15, 23, 42, 0.95);
+      color: #f8fafc;
+      border: 1px solid #475569;
+      border-radius: 8px;
+      padding: 7px 11px;
+      font-size: 12px;
+      line-height: 1.4;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.45);
+      z-index: 100;
+      display: none;
+      white-space: nowrap;
+    }
+
+    #tooltip .tt-title { font-weight: 700; font-size: 13px; }
+    #tooltip .tt-tier { color: #fca5a5; font-weight: 600; }
+    #tooltip .tt-coord { color: #94a3b8; font-size: 11px; }
+
+    /* Victory Overlay */
+    .victory-banner {
+      position: absolute;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.82);
+      backdrop-filter: blur(4px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      border-radius: 10px;
+      z-index: 50;
+    }
+
+    .victory-banner.show {
+      display: flex;
+    }
+
+    .victory-card {
+      background: #1e293b;
+      border: 2px solid #facc15;
+      border-radius: 14px;
+      padding: 24px 32px;
+      text-align: center;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.65);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .victory-card h2 {
+      font-size: 24px;
+      color: #facc15;
+    }
+
+    .victory-card p {
+      font-size: 14px;
+      color: #e2e8f0;
+    }
+
+    /* Legend */
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      font-size: 11.5px;
+      color: var(--text-muted);
+      align-items: center;
+      justify-content: center;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .swatch {
+      width: 13px;
+      height: 13px;
+      border-radius: 3px;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+    }
+
+    /* Rules Section Below Game */
+    .rules-section {
+      width: 100%;
+      max-width: 1260px;
+      background: var(--bg-panel);
+      border: 1px solid var(--border-panel);
+      border-radius: 12px;
+      padding: 18px 22px;
+      margin-top: 6px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+      user-select: text;
+    }
+
+    .rules-header {
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: 0.03em;
+      color: #f8fafc;
+      margin-bottom: 14px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border-panel);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .rules-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+      gap: 14px;
+    }
+
+    .rule-card {
+      background: #1a1e28;
+      border: 1px solid #2e3545;
+      border-radius: 10px;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+
+    .rule-card h3 {
+      font-size: 13px;
+      font-weight: 800;
+      color: #facc15;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .rule-card p,
+    .rule-card li {
+      font-size: 12.5px;
+      line-height: 1.5;
+      color: #cbd5e1;
+    }
+
+    .rule-card ul {
+      padding-left: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="hud-bar">
+    <div class="hud-top-row">
+      <div class="hud-title-group">
+        <div class="hud-title">
+          <span>Hex Heist Prototype</span>
+          <span style="font-size: 11px; font-weight: 500; color: #94a3b8;">56 × 34 cm</span>
+        </div>
+        <div class="hud-subtitle" id="turn-instruction">Roll the dice (0, 1, 1, 2, 2, 3) to move the active figure</div>
+      </div>
+
+      <div class="vault-box">
+        <div class="vault-header">
+          <span>Thieves Stolen Goal</span>
+          <span class="vault-amount" id="vault-amount">$0 / $100,000</span>
+        </div>
+        <div class="vault-bar-bg">
+          <div class="vault-bar-fill" id="vault-bar-fill"></div>
+        </div>
+      </div>
+
+      <div class="turn-dice-box">
+        <div class="active-turn-badge police" id="active-turn-badge">POLICE • P1</div>
+        <div class="turn-order-pills" id="turn-pills"></div>
+        <div class="dice-face" id="dice-face" title="Dice faces: 0, 1, 1, 2, 2, 3">–</div>
+        <button class="btn btn-primary" id="btn-roll">Roll Dice</button>
+      </div>
+
+      <div class="hud-actions">
+        <button class="btn" id="btn-sandbox" title="Toggle free drag-and-drop sandbox mode">Sandbox: Off</button>
+        <button class="btn" id="btn-toggle-coords">Hide Coords</button>
+        <button class="btn btn-reset" id="btn-reset">Reset</button>
+      </div>
+    </div>
+
+    <div class="hud-bottom-row">
+      <div class="hud-figures" id="hud-figures"></div>
+      <div class="status-log" id="status-log">P1's turn — Roll the dice!</div>
+    </div>
+  </div>
+
+  <div class="board-wrapper">
+    <svg id="board" viewBox="0 0 1008 612" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <filter id="token-shadow" x="-35%" y="-35%" width="170%" height="170%">
+          <feDropShadow dx="0" dy="3.5" stdDeviation="3.2" flood-color="#000000" flood-opacity="0.6" />
+        </filter>
+        <filter id="special-shadow" x="-15%" y="-15%" width="130%" height="130%">
+          <feDropShadow dx="0" dy="1.5" stdDeviation="2" flood-color="#000000" flood-opacity="0.25" />
+        </filter>
+      </defs>
+
+      <!-- Board Base (56cm x 34cm @ 18px/cm = 1008 x 612) -->
+      <rect x="0" y="0" width="1008" height="612" rx="10" fill="#ebe5d8" stroke="#334155" stroke-width="4" />
+
+      <g id="layer-regular-hexes"></g>
+      <g id="layer-special-hexes"></g>
+      <g id="layer-walls"></g>
+      <g id="layer-tokens"></g>
+    </svg>
+
+    <div class="side-dice-panel turn-police" id="side-dice-panel">
+      <div class="side-dice-label">Dice Roll</div>
+      <div class="side-dice-big" id="side-dice-big">–</div>
+      <div class="side-dice-sub" id="side-dice-sub">Roll to move</div>
+      <button class="btn btn-primary" id="btn-roll-side" style="width: 100%;">Roll Dice</button>
+    </div>
+
+    <div class="victory-banner" id="victory-banner">
+      <div class="victory-card">
+        <h2 id="victory-title">Thieves Win!</h2>
+        <p id="victory-text">The thieves stole $100,000+ and reached their objective!</p>
+        <button class="btn btn-primary" id="btn-play-again">Play Again</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><span class="swatch" style="background:#dc2626"></span> Heist Space (14)</div>
+    <div class="legend-item"><span class="swatch" style="background:#374151"></span> Comandancia (Jail)</div>
+    <div class="legend-item"><span class="swatch" style="background:#f97316"></span> Orange Corner (Thief Spawn)</div>
+    <div class="legend-item"><span class="swatch" style="background:#2563eb"></span> Blue Corner (Police Spawn)</div>
+    <div class="legend-item"><span class="swatch" style="background:#22c55e"></span> Reachable Hex</div>
+    <div class="legend-item"><span class="swatch" style="background:#111827; height:5px; width:18px; border-radius:2px"></span> Wall (Blocked)</div>
+  </div>
+
+  <section class="rules-section" aria-label="Reglas del Juego">
+    <div class="rules-header">📜 Reglas del Juego</div>
+    <div class="rules-grid">
+      <div class="rule-card">
+        <h3>Objetivo</h3>
+        <ul>
+          <li><strong>Policías:</strong> Tendrán que atrapar y encarcelar a los ladrones.</li>
+          <li><strong>Ladrones:</strong> Tendrán que asaltar los establecimientos cuyo monto varía hasta completar el botín.</li>
+        </ul>
+      </div>
+
+      <div class="rule-card">
+        <h3>Puntuaciones</h3>
+        <ul>
+          <li>🏦 <strong>Banco:</strong> $20,000 (20k$)</li>
+          <li>💎 <strong>Joyerías:</strong> $15,000 (15k$)</li>
+          <li>🛒 <strong>Supermercados:</strong> $10,000 (10k$)</li>
+          <li>💊 <strong>Farmacias:</strong> $5,000 (5k$)</li>
+          <li>🏪 <strong>Oxxos:</strong> $3,000 (3k$)</li>
+        </ul>
+      </div>
+
+      <div class="rule-card">
+        <h3>Jugadores y Turnos</h3>
+        <p><strong>Jugadores:</strong> 2 a 4 jugadores por partida en dos equipos.</p>
+        <ul>
+          <li>Inicia el primer policía seguido de: <strong>Policía 1 → Ladrón 1 → Policía 2 → Ladrón 2</strong>.</li>
+          <li>El juego terminará si los <strong>dos ladrones terminan en la cárcel</strong> al mismo tiempo o si completan los <strong>$100,000 (100k)</strong> de botín.</li>
+        </ul>
+      </div>
+
+      <div class="rule-card">
+        <h3>Mecánicas</h3>
+        <ul>
+          <li>Los ladrones tendrán que realizar las tiradas buscando asaltar las casillas de robo evitando ser capturados.</li>
+          <li>Si un policía cae en una casilla donde se encuentra un ladrón, este será encarcelado y perderá un turno.</li>
+          <li>Si un ladrón completa <strong>3 arrestos</strong> quedará en cadena perpetua por el resto de la partida y se perderá el botín que había recolectado.</li>
+          <li>Si queda un ladrón y logra recolectar los <strong>$100,000</strong>, el equipo de los ladrones habrá ganado y los policías perderán la partida.</li>
+        </ul>
+      </div>
+
+      <div class="rule-card">
+        <h3>Reglas</h3>
+        <ul>
+          <li>Los jugadores no podrán avanzar de forma directa a una casilla si una pared está por delante.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <div id="tooltip"></div>
+
+  <script>
+    (() => {
+      // --- 1. Board & Hex Geometry (1 cm = 18 px) ---
+      const SCALE = 18;
+      const BOARD_W_CM = 56;
+      const BOARD_H_CM = 34;
+      const HEX_W_CM = 5;
+      const R_CM = HEX_W_CM / Math.sqrt(3);
+      const DY_CM = 1.5 * R_CM;
+
+      const GRID_H_CM = 6 * DY_CM + 2 * R_CM;
+      const START_Y_CM = (BOARD_H_CM - GRID_H_CM) / 2 + R_CM;
+      const MARGIN_X_CM = (BOARD_W_CM - 11 * HEX_W_CM) / 2;
+
+      const ROW_COUNTS = [10, 11, 10, 11, 10, 11, 10];
+      const R_PX = R_CM * SCALE;
+
+      // --- 2. Special Spaces & Heist Data ---
+      const COMANDANCIA_CELLS = new Set(["2,0", "3,0", "4,0"]);
+      const COMANDANCIA_ADJACENT = ["1,0", "1,1", "2,1", "3,1", "4,1", "5,0", "5,1"];
+
+      const CORNERS = {
+        "0,0": { color: "orange", label: "START", sub: "Thief",  fill: "#f97316", stroke: "#c2410c" },
+        "0,9": { color: "orange", label: "START", sub: "Thief",  fill: "#f97316", stroke: "#c2410c" },
+        "6,0": { color: "blue",   label: "START", sub: "Police", fill: "#2563eb", stroke: "#1d4ed8" },
+        "6,9": { color: "blue",   label: "START", sub: "Police", fill: "#2563eb", stroke: "#1d4ed8" }
+      };
+
+      const HEISTS = {
+        "0,7":  { icon: "🏦", name: "Bank",    short: "BANK",    tier: "Major Heist",  amount: 20000, value: "$20,000", shortVal: "$20k" },
+        "2,4":  { icon: "🏦", name: "Bank",    short: "BANK",    tier: "Major Heist",  amount: 20000, value: "$20,000", shortVal: "$20k" },
+        "6,5":  { icon: "🏦", name: "Bank",    short: "BANK",    tier: "Major Heist",  amount: 20000, value: "$20,000", shortVal: "$20k" },
+        "1,2":  { icon: "💎", name: "Jewelry", short: "JEWELRY", tier: "Major Heist",  amount: 15000, value: "$15,000", shortVal: "$15k" },
+        "3,10": { icon: "💎", name: "Jewelry", short: "JEWELRY", tier: "Major Heist",  amount: 15000, value: "$15,000", shortVal: "$15k" },
+        "5,2":  { icon: "💎", name: "Jewelry", short: "JEWELRY", tier: "Major Heist",  amount: 15000, value: "$15,000", shortVal: "$15k" },
+        "3,3":  { icon: "🛒", name: "Market",  short: "MARKET",  tier: "Medium Heist", amount: 10000, value: "$10,000", shortVal: "$10k" },
+        "6,7":  { icon: "🛒", name: "Market",  short: "MARKET",  tier: "Medium Heist", amount: 10000, value: "$10,000", shortVal: "$10k" },
+        "0,5":  { icon: "💊", name: "Farmacia", short: "FARMACIA", tier: "Minor Heist",  amount: 5000,  value: "$5,000",  shortVal: "$5k" },
+        "3,8":  { icon: "💊", name: "Farmacia", short: "FARMACIA", tier: "Minor Heist",  amount: 5000,  value: "$5,000",  shortVal: "$5k" },
+        "5,4":  { icon: "💊", name: "Farmacia", short: "FARMACIA", tier: "Minor Heist",  amount: 5000,  value: "$5,000",  shortVal: "$5k" },
+        "0,3":  { icon: "🏪", name: "Oxxo",    short: "OXXO",    tier: "Minor Heist",  amount: 3000,  value: "$3,000",  shortVal: "$3k" },
+        "3,6":  { icon: "🏪", name: "Oxxo",    short: "OXXO",    tier: "Minor Heist",  amount: 3000,  value: "$3,000",  shortVal: "$3k" },
+        "5,9":  { icon: "🏪", name: "Oxxo",    short: "OXXO",    tier: "Minor Heist",  amount: 3000,  value: "$3,000",  shortVal: "$3k" }
+      };
+
+      const DICE_FACES = [0, 1, 1, 2, 2, 3];
+      const TURN_ORDER = ["P1", "T1", "P2", "T2"];
+      const GOAL_AMOUNT = 100000;
+
+      function hexCenter(row, col) {
+        const isOddCountRow = ROW_COUNTS[row] === 10;
+        const xOffset = isOddCountRow ? 1.0 : 0.5;
+        const cxCm = MARGIN_X_CM + (col + xOffset) * HEX_W_CM;
+        const cyCm = START_Y_CM + row * DY_CM;
+        return { cx: cxCm * SCALE, cy: cyCm * SCALE };
+      }
+
+      function hexVertices(cx, cy, radius) {
+        const pts = [];
+        for (let i = 0; i < 6; i++) {
+          const angle = (-90 + i * 60) * (Math.PI / 180);
+          pts.push({
+            x: cx + radius * Math.cos(angle),
+            y: cy + radius * Math.sin(angle)
+          });
+        }
+        return pts;
+      }
+
+      function pointsToAttr(pts) {
+        return pts.map(p => `${p.x.toFixed(2)},${p.y.toFixed(2)}`).join(" ");
+      }
+
+      // Build cell map
+      const cells = new Map();
+      for (let r = 0; r < ROW_COUNTS.length; r++) {
+        for (let c = 0; c < ROW_COUNTS[r]; c++) {
+          const key = `${r},${c}`;
+          const { cx, cy } = hexCenter(r, c);
+          cells.set(key, { key, row: r, col: c, cx, cy });
+        }
+      }
+
+      // Hard-coded balanced wall layout (found by simulation: ~50% thief / ~50% police win rate
+      // with repeatable heists, 3-strike capture rule and "both thieves jailed = police win").
+      const BALANCED_WALLS = [
+        "0,1|0,2",
+        "0,2|0,3",
+        "0,8|0,9",
+        "0,8|1,9",
+        "1,1|1,2",
+        "1,3|1,4",
+        "1,5|2,5",
+        "1,6|1,7",
+        "1,8|1,9",
+        "1,8|2,7",
+        "1,8|2,8",
+        "2,1|2,2",
+        "2,4|3,4",
+        "2,5|3,5",
+        "3,10|4,9",
+        "3,2|4,2",
+        "3,4|4,4",
+        "3,7|3,8",
+        "4,1|4,2",
+        "4,1|5,2",
+        "4,2|5,3",
+        "4,4|4,5",
+        "4,7|5,8",
+        "4,8|5,8",
+        "4,8|5,9",
+        "4,9|5,10",
+        "5,1|5,2",
+        "5,1|6,1",
+        "5,6|5,7",
+        "6,0|6,1"
+      ];
+      let walls = new Set(BALANCED_WALLS);
+
+      function edgeKey(a, b) {
+        return a < b ? `${a}|${b}` : `${b}|${a}`;
+      }
+
+      // Hex neighbors helper (handling Comandancia as a single logical node and walls)
+      function getNeighbors(spaceId, allowComandanciaEntry) {
+        if (spaceId === "comandancia") {
+          return [...COMANDANCIA_ADJACENT];
+        }
+        const [r, c] = spaceId.split(",").map(Number);
+        const isEven = (r % 2 === 0);
+        const deltas = isEven
+          ? [[0, -1], [0, 1], [-1, 0], [-1, 1], [1, 0], [1, 1]]
+          : [[0, -1], [0, 1], [-1, -1], [-1, 0], [1, -1], [1, 0]];
+
+        const result = new Set();
+        for (const [dr, dc] of deltas) {
+          const nr = r + dr;
+          const nc = c + dc;
+          if (nr < 0 || nr >= ROW_COUNTS.length || nc < 0 || nc >= ROW_COUNTS[nr]) continue;
+          const nKey = `${nr},${nc}`;
+          if (COMANDANCIA_CELLS.has(nKey)) {
+            if (allowComandanciaEntry) result.add("comandancia");
+          } else {
+            if (!walls.has(edgeKey(spaceId, nKey))) {
+              result.add(nKey);
+            }
+          }
+        }
+        return [...result];
+      }
+
+      function isBoardConnected() {
+        const start = "0,0";
+        const visited = new Set([start]);
+        const queue = [start];
+        while (queue.length > 0) {
+          const curr = queue.shift();
+          for (const nb of getNeighbors(curr, false)) {
+            if (!visited.has(nb)) {
+              visited.add(nb);
+              queue.push(nb);
+            }
+          }
+        }
+        return visited.size === (cells.size - COMANDANCIA_CELLS.size);
+      }
+
+      function getClockwiseNeighborEdges(cellKey) {
+        const [r, c] = cellKey.split(",").map(Number);
+        const isEven = (r % 2 === 0);
+        // Clockwise order around pointy-top hex: TR, R, BR, BL, L, TL
+        const deltas = isEven
+          ? [[-1, 1], [0, 1], [1, 1], [1, 0], [0, -1], [-1, 0]]
+          : [[-1, 0], [0, 1], [1, 0], [1, -1], [0, -1], [-1, -1]];
+
+        const edges = [];
+        deltas.forEach(([dr, dc], dirIdx) => {
+          const nr = r + dr;
+          const nc = c + dc;
+          if (nr < 0 || nr >= ROW_COUNTS.length || nc < 0 || nc >= ROW_COUNTS[nr]) return;
+          const nKey = `${nr},${nc}`;
+          if (COMANDANCIA_CELLS.has(nKey)) return;
+          edges.push({ dirIdx, ek: edgeKey(cellKey, nKey) });
+        });
+        return edges;
+      }
+
+      function shuffleArray(arr) {
+        for (let i = arr.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        return arr;
+      }
+
+      function placeSeparatedWallsFor(cellKey, requiredCount) {
+        const edges = getClockwiseNeighborEdges(cellKey);
+        const existing = edges.filter(e => walls.has(e.ek));
+        const needed = requiredCount - existing.length;
+        if (needed <= 0) return;
+
+        const available = edges.filter(e => !walls.has(e.ek));
+        // Generate all combinations of size `needed` from `available`
+        const combos = [];
+        function buildCombos(start, chosen) {
+          if (chosen.length === needed) {
+            combos.push([...chosen]);
+            return;
+          }
+          for (let i = start; i < available.length; i++) {
+            chosen.push(available[i]);
+            buildCombos(i + 1, chosen);
+            chosen.pop();
+          }
+        }
+        buildCombos(0, []);
+
+        // Score each combo by minimum circular distance between all chosen+existing dirIdx
+        const scored = combos.map(combo => {
+          const dirs = [...existing, ...combo].map(e => e.dirIdx).sort((a, b) => a - b);
+          let minGap = 6;
+          for (let i = 0; i < dirs.length; i++) {
+            const next = dirs[(i + 1) % dirs.length];
+            const gap = (next - dirs[i] + 6) % 6;
+            if (gap < minGap) minGap = gap;
+          }
+          return { combo, minGap };
+        });
+
+        // Sort by highest separation first, shuffling ties
+        shuffleArray(scored);
+        scored.sort((a, b) => b.minGap - a.minGap);
+
+        for (const { combo } of scored) {
+          for (const e of combo) walls.add(e.ek);
+          if (isBoardConnected()) return;
+          for (const e of combo) walls.delete(e.ek);
+        }
+      }
+
+      function generateRandomWalls(targetCount = 34) {
+        walls = new Set();
+
+        // 1. Place 3 separated barriers on Banks, 2 on Jewelry, and at least 1 on Markets & Bakeries
+        const protectedSpots = new Set();
+        const banks = [];
+        const jewelries = [];
+        const marketsAndBakeries = [];
+        for (const [key, h] of Object.entries(HEISTS)) {
+          if (h.name === "Bank") {
+            banks.push(key);
+            protectedSpots.add(key);
+          } else if (h.name === "Jewelry") {
+            jewelries.push(key);
+            protectedSpots.add(key);
+          } else if (h.name === "Market" || h.name === "Farmacia") {
+            marketsAndBakeries.push(key);
+          }
+        }
+
+        for (const b of banks) placeSeparatedWallsFor(b, 3);
+        for (const j of jewelries) placeSeparatedWallsFor(j, 2);
+        for (const mb of marketsAndBakeries) placeSeparatedWallsFor(mb, 1);
+
+        // 2. Fill remaining random walls elsewhere (without adding extra walls to Banks/Jewelry)
+        const candidates = [];
+        const seen = new Set();
+
+        for (const cell of cells.values()) {
+          if (COMANDANCIA_CELLS.has(cell.key) || protectedSpots.has(cell.key)) continue;
+          const edges = getClockwiseNeighborEdges(cell.key);
+          for (const { ek } of edges) {
+            const [a, b] = ek.split("|");
+            if (protectedSpots.has(a) || protectedSpots.has(b)) continue;
+            if (!seen.has(ek) && !walls.has(ek)) {
+              seen.add(ek);
+              candidates.push(ek);
+            }
+          }
+        }
+
+        shuffleArray(candidates);
+
+        for (const ek of candidates) {
+          if (walls.size >= targetCount) break;
+          walls.add(ek);
+          if (!isBoardConnected()) {
+            walls.delete(ek);
+          }
+        }
+      }
+
+      // BFS for all spaces reachable in 1..steps
+      function getReachableSpaces(startSpace, steps) {
+        if (steps <= 0) return new Set();
+        const allowComandanciaEntry = false;
+        const visited = new Set([startSpace]);
+        const reachable = new Set();
+        let frontier = [startSpace];
+
+        for (let d = 1; d <= steps; d++) {
+          const nextFrontier = [];
+          for (const curr of frontier) {
+            for (const nb of getNeighbors(curr, allowComandanciaEntry)) {
+              if (!visited.has(nb)) {
+                visited.add(nb);
+                reachable.add(nb);
+                nextFrontier.push(nb);
+              }
+            }
+          }
+          frontier = nextFrontier;
+        }
+        return reachable;
+      }
+
+      const c20 = cells.get("2,0");
+      const c30 = cells.get("3,0");
+      const c40 = cells.get("4,0");
+      const COMANDANCIA_CENTER = {
+        cx: (c20.cx + c30.cx + c40.cx) / 3,
+        cy: (c20.cy + c30.cy + c40.cy) / 3
+      };
+
+      // --- 3. SVG Rendering ---
+      const svg = document.getElementById("board");
+      const regularLayer = document.getElementById("layer-regular-hexes");
+      const specialLayer = document.getElementById("layer-special-hexes");
+      const wallLayer = document.getElementById("layer-walls");
+      const tokenLayer = document.getElementById("layer-tokens");
+      const tooltip = document.getElementById("tooltip");
+
+      const svgNS = "http://www.w3.org/2000/svg";
+      function el(tag, attrs = {}, parent = null) {
+        const node = document.createElementNS(svgNS, tag);
+        for (const [k, v] of Object.entries(attrs)) {
+          node.setAttribute(k, v);
+        }
+        if (parent) parent.appendChild(node);
+        return node;
+      }
+
+      const spaceElements = new Map();
+
+      function attachHoverTooltip(element, getHtml) {
+        element.addEventListener("mouseenter", (e) => {
+          tooltip.innerHTML = getHtml();
+          tooltip.style.display = "block";
+          moveTooltip(e);
+        });
+        element.addEventListener("mousemove", moveTooltip);
+        element.addEventListener("mouseleave", () => {
+          tooltip.style.display = "none";
+        });
+      }
+
+      function moveTooltip(e) {
+        const pad = 14;
+        let left = e.clientX + pad;
+        let top = e.clientY + pad;
+        const rect = tooltip.getBoundingClientRect();
+        if (left + rect.width > window.innerWidth - 8) left = e.clientX - rect.width - pad;
+        if (top + rect.height > window.innerHeight - 8) top = e.clientY - rect.height - pad;
+        tooltip.style.left = `${left}px`;
+        tooltip.style.top = `${top}px`;
+      }
+
+      // Render Regular & Heist Hexes
+      for (const cell of cells.values()) {
+        if (COMANDANCIA_CELLS.has(cell.key) || CORNERS[cell.key]) continue;
+
+        const heist = HEISTS[cell.key];
+        const pts = hexVertices(cell.cx, cell.cy, R_PX);
+        const g = el("g", {}, regularLayer);
+
+        const poly = el("polygon", {
+          points: pointsToAttr(pts),
+          fill: heist ? "#dc2626" : "#e5dfd2",
+          stroke: heist ? "#991b1b" : "#b8b0a0",
+          "stroke-width": heist ? "2" : "1.5",
+          class: "hex-shape",
+          "data-space": cell.key
+        }, g);
+
+        spaceElements.set(cell.key, poly);
+
+        if (heist) {
+          el("text", {
+            x: cell.cx, y: cell.cy - 13,
+            "text-anchor": "middle", "font-size": "16", "pointer-events": "none"
+          }, g).textContent = heist.icon;
+          el("text", { x: cell.cx, y: cell.cy + 2, class: "hex-label-title" }, g).textContent = heist.short;
+          el("text", { x: cell.cx, y: cell.cy + 14, class: "hex-label-sub" }, g).textContent = heist.shortVal;
+          el("text", {
+            x: cell.cx, y: cell.cy + 29, class: "hex-coord",
+            style: "fill: rgba(255,255,255,0.72);"
+          }, g).textContent = `(${cell.row},${cell.col})`;
+
+          attachHoverTooltip(poly, () => `
+            <div class="tt-title">${heist.icon} ${heist.name}</div>
+            <div class="tt-tier">${heist.tier} — ${heist.value}</div>
+            <div class="tt-coord">Hex (${cell.row}, ${cell.col})</div>
+          `);
+        } else {
+          el("text", { x: cell.cx, y: cell.cy + 3, class: "hex-coord" }, g).textContent = `${cell.row},${cell.col}`;
+        }
+
+        poly.addEventListener("click", () => handleSpaceClick(cell.key));
+      }
+
+      // Render Comandancia
+      (() => {
+        const v20 = hexVertices(c20.cx, c20.cy, R_PX);
+        const v30 = hexVertices(c30.cx, c30.cy, R_PX);
+        const v40 = hexVertices(c40.cx, c40.cy, R_PX);
+
+        const outerPts = [
+          v20[0], v20[1], v20[2], v20[3],
+          v30[2],
+          v40[1], v40[2], v40[3], v40[4], v40[5],
+          v30[4], v30[5], v30[0],
+          v20[5]
+        ];
+
+        const g = el("g", { filter: "url(#special-shadow)" }, specialLayer);
+        const poly = el("polygon", {
+          points: pointsToAttr(outerPts),
+          fill: "#374151",
+          stroke: "#111827",
+          "stroke-width": "2.5",
+          "stroke-linejoin": "round",
+          class: "hex-shape",
+          "data-space": "comandancia"
+        }, g);
+
+        spaceElements.set("comandancia", poly);
+
+        el("text", { x: COMANDANCIA_CENTER.cx, y: COMANDANCIA_CENTER.cy - 4, class: "comandancia-label" }, g).textContent = "COMANDANCIA";
+        el("text", { x: COMANDANCIA_CENTER.cx, y: COMANDANCIA_CENTER.cy + 11, class: "comandancia-sub" }, g).textContent = "JAIL • (2,0)(3,0)(4,0)";
+
+        attachHoverTooltip(poly, () => `
+          <div class="tt-title">Comandancia (Jail)</div>
+          <div>Police Base &amp; Thief Prison (1 turn)</div>
+          <div class="tt-coord">Merged Hexes (2,0), (3,0), (4,0)</div>
+        `);
+
+        poly.addEventListener("click", () => handleSpaceClick("comandancia"));
+      })();
+
+      // Render 4 Corner Special Spaces (~15% larger)
+      for (const [key, corner] of Object.entries(CORNERS)) {
+        const cell = cells.get(key);
+        const pts = hexVertices(cell.cx, cell.cy, R_PX * 1.15);
+        const g = el("g", { filter: "url(#special-shadow)" }, specialLayer);
+
+        const poly = el("polygon", {
+          points: pointsToAttr(pts),
+          fill: corner.fill,
+          stroke: corner.stroke,
+          "stroke-width": "2.5",
+          class: "hex-shape",
+          "data-space": key
+        }, g);
+
+        spaceElements.set(key, poly);
+
+        el("text", { x: cell.cx, y: cell.cy - 3, class: "hex-label-title" }, g).textContent = corner.label;
+        el("text", { x: cell.cx, y: cell.cy + 11, class: "hex-label-sub" }, g).textContent = corner.sub;
+        el("text", {
+          x: cell.cx, y: cell.cy + 30, class: "hex-coord",
+          style: "fill: rgba(255,255,255,0.8);"
+        }, g).textContent = `(${cell.row},${cell.col})`;
+
+        attachHoverTooltip(poly, () => `
+          <div class="tt-title">${corner.color === "orange" ? "Orange Corner" : "Blue Corner"}</div>
+          <div>${corner.color === "orange" ? "Thief Starting Space" : "Police Starting Space"}</div>
+          <div class="tt-coord">Hex (${cell.row}, ${cell.col})</div>
+        `);
+
+        poly.addEventListener("click", () => handleSpaceClick(key));
+      }
+
+      // --- 4. Game State & Logic ---
+      const INITIAL_FIGURES = [
+        { id: "P1", role: "police", space: "6,0", jailedTurns: 0, captures: 0, stolen: 0, permanentlyJailed: false },
+        { id: "P2", role: "police", space: "6,9", jailedTurns: 0, captures: 0, stolen: 0, permanentlyJailed: false },
+        { id: "T1", role: "thief",  space: "0,0", jailedTurns: 0, captures: 0, stolen: 0, permanentlyJailed: false },
+        { id: "T2", role: "thief",  space: "0,9", jailedTurns: 0, captures: 0, stolen: 0, permanentlyJailed: false }
+      ];
+
+      let figures = [];
+      let turnIndex = 0;
+      let currentRoll = null;
+      let reachableSpaces = new Set();
+      let gameOver = false;
+      let sandboxMode = false;
+      let sandboxSelectedId = null;
+      let dragState = null;
+
+      function getTotalStolen() {
+        return figures.reduce((sum, f) => sum + (f.role === "thief" ? f.stolen : 0), 0);
+      }
+
+      function showVictory(title, text) {
+        gameOver = true;
+        document.getElementById("victory-title").textContent = title;
+        document.getElementById("victory-text").textContent = text;
+        document.getElementById("victory-banner").classList.add("show");
+      }
+
+      function getActiveFigure() {
+        const id = TURN_ORDER[turnIndex];
+        return figures.find(f => f.id === id);
+      }
+
+      function setLog(msg) {
+        document.getElementById("status-log").textContent = msg;
+      }
+
+      function renderWalls() {
+        wallLayer.innerHTML = "";
+        for (const ek of walls) {
+          const [aKey, bKey] = ek.split("|");
+          const a = cells.get(aKey);
+          const b = cells.get(bKey);
+          if (!a || !b) continue;
+
+          const mx = (a.cx + b.cx) / 2;
+          const my = (a.cy + b.cy) / 2;
+          const dx = b.cx - a.cx;
+          const dy = b.cy - a.cy;
+          const len = Math.hypot(dx, dy);
+          const px = -dy / len;
+          const py = dx / len;
+          const halfEdge = R_PX * 0.5;
+
+          const x1 = (mx - px * halfEdge).toFixed(2);
+          const y1 = (my - py * halfEdge).toFixed(2);
+          const x2 = (mx + px * halfEdge).toFixed(2);
+          const y2 = (my + py * halfEdge).toFixed(2);
+
+          // Light outline for contrast over red/tan hexes
+          el("line", {
+            x1, y1, x2, y2,
+            stroke: "#f8fafc",
+            "stroke-width": "9",
+            "stroke-linecap": "round",
+            opacity: "0.75",
+            "pointer-events": "none"
+          }, wallLayer);
+
+          // Bold wall line
+          el("line", {
+            x1, y1, x2, y2,
+            stroke: "#111827",
+            "stroke-width": "5.5",
+            "stroke-linecap": "round",
+            "pointer-events": "none"
+          }, wallLayer);
+        }
+      }
+
+      function resetGame() {
+        walls = new Set(BALANCED_WALLS);
+        renderWalls();
+        figures = INITIAL_FIGURES.map(f => ({ ...f }));
+        turnIndex = 0;
+        currentRoll = null;
+        reachableSpaces = new Set();
+        gameOver = false;
+        sandboxSelectedId = null;
+        document.getElementById("victory-banner").classList.remove("show");
+        document.getElementById("dice-face").textContent = "–";
+        document.getElementById("side-dice-big").textContent = "–";
+        setLog("P1's turn — Roll the dice!");
+        render();
+      }
+
+      function advanceTurn() {
+        currentRoll = null;
+        reachableSpaces = new Set();
+        for (let i = 0; i < TURN_ORDER.length; i++) {
+          turnIndex = (turnIndex + 1) % TURN_ORDER.length;
+          const candidate = getActiveFigure();
+          if (!candidate.permanentlyJailed) break;
+        }
+        const next = getActiveFigure();
+        document.getElementById("dice-face").textContent = "–";
+        document.getElementById("side-dice-big").textContent = "–";
+        if (next.jailedTurns > 0) {
+          setLog(`${next.id} is in Jail (${next.jailedTurns} turn) — Click "Serve Jail Turn".`);
+        } else {
+          setLog(`${next.id}'s turn — Roll the dice!`);
+        }
+        render();
+      }
+
+      function rollDice() {
+        if (gameOver || sandboxMode) return;
+        const active = getActiveFigure();
+
+        // Handle jailed thief serving their 1-turn sentence
+        if (active.jailedTurns > 0) {
+          active.jailedTurns = 0;
+          setLog(`${active.id} served 1 turn in Comandancia and can leave on their next turn!`);
+          advanceTurn();
+          return;
+        }
+
+        if (currentRoll !== null) return;
+
+        const diceEl = document.getElementById("dice-face");
+        const sideDiceEl = document.getElementById("side-dice-big");
+        const rollBtn = document.getElementById("btn-roll");
+        const sideRollBtn = document.getElementById("btn-roll-side");
+        rollBtn.disabled = true;
+        sideRollBtn.disabled = true;
+        diceEl.classList.add("rolling");
+        sideDiceEl.classList.add("rolling");
+
+        setTimeout(() => {
+          diceEl.classList.remove("rolling");
+          sideDiceEl.classList.remove("rolling");
+          const rolled = DICE_FACES[Math.floor(Math.random() * DICE_FACES.length)];
+          currentRoll = rolled;
+          diceEl.textContent = rolled;
+          sideDiceEl.textContent = rolled;
+
+          if (rolled === 0) {
+            setLog(`${active.id} rolled 0 — No movement. Turn passes.`);
+            render();
+            setTimeout(() => {
+              if (!gameOver && !sandboxMode && currentRoll === 0) {
+                advanceTurn();
+              }
+            }, 900);
+          } else {
+            reachableSpaces = getReachableSpaces(active.space, rolled, active.role);
+            setLog(`${active.id} rolled ${rolled} — Click a green hex to move (up to ${rolled} steps).`);
+            render();
+          }
+        }, 260);
+      }
+
+      function applyMoveEffects(fig, targetSpace) {
+        fig.space = targetSpace;
+
+        if (fig.role === "thief") {
+          // Check heist plot
+          if (HEISTS[targetSpace]) {
+            const h = HEISTS[targetSpace];
+            fig.stolen += h.amount;
+            const totalStolen = getTotalStolen();
+            setLog(`${fig.id} robbed ${h.name} (+${h.value})! Total stolen: $${totalStolen.toLocaleString()}`);
+            if (totalStolen >= GOAL_AMOUNT) {
+              showVictory(
+                "Thieves Win!",
+                `The thieves stole $${totalStolen.toLocaleString()} and reached the $100,000 goal!`
+              );
+            }
+          } else {
+            setLog(`${fig.id} moved to ${formatSpaceLabel(targetSpace)}.`);
+          }
+        } else {
+          // Police catches any active thief on the target space (outside Comandancia)
+          if (targetSpace !== "comandancia") {
+            const caught = figures.filter(
+              f => f.role === "thief" && f.space === targetSpace && !f.permanentlyJailed
+            );
+            if (caught.length > 0) {
+              const notes = [];
+              for (const t of caught) {
+                t.space = "comandancia";
+                t.captures += 1;
+                if (t.captures >= 3) {
+                  const lost = t.stolen;
+                  t.stolen = 0;
+                  t.jailedTurns = 0;
+                  t.permanentlyJailed = true;
+                  notes.push(`${t.id} (3rd capture — jailed permanently, $${lost.toLocaleString()} lost!)`);
+                } else {
+                  t.jailedTurns = 1;
+                  notes.push(`${t.id} (capture ${t.captures}/3 — 1 turn in jail)`);
+                }
+              }
+              setLog(`${fig.id} caught ${notes.join(" & ")}`);
+
+              const bothCaptured = figures
+                .filter(f => f.role === "thief")
+                .every(t => t.jailedTurns > 0 || t.permanentlyJailed);
+              if (bothCaptured) {
+                showVictory(
+                  "Police Win!",
+                  "Both thieves are captured in Comandancia at the same time!"
+                );
+              }
+              return;
+            }
+          }
+          setLog(`${fig.id} moved to ${formatSpaceLabel(targetSpace)}.`);
+        }
+      }
+
+      function handleSpaceClick(spaceId) {
+        if (gameOver) return;
+
+        if (sandboxMode) {
+          if (!sandboxSelectedId) return;
+          const fig = figures.find(f => f.id === sandboxSelectedId);
+          if (fig) {
+            applyMoveEffects(fig, spaceId);
+            render();
+          }
+          return;
+        }
+
+        const active = getActiveFigure();
+        if (currentRoll === null || currentRoll === 0) return;
+        if (!reachableSpaces.has(spaceId)) return;
+
+        applyMoveEffects(active, spaceId);
+        if (!gameOver) {
+          advanceTurn();
+        } else {
+          currentRoll = null;
+          reachableSpaces = new Set();
+          render();
+        }
+      }
+
+      // --- 5. Token Rendering & Drag (for Sandbox Mode) ---
+      function getSpaceCenter(spaceId) {
+        if (spaceId === "comandancia") return COMANDANCIA_CENTER;
+        const c = cells.get(spaceId);
+        return { cx: c.cx, cy: c.cy };
+      }
+
+      function formatSpaceLabel(spaceId) {
+        if (spaceId === "comandancia") return "Comandancia";
+        const [r, c] = spaceId.split(",");
+        return `Hex (${r}, ${c})`;
+      }
+
+      function getSpaceSubInfo(spaceId, fig) {
+        if (fig.permanentlyJailed) {
+          return { text: `LOCKED UP (3/3) • $0`, cls: "jailed" };
+        }
+        if (fig.jailedTurns > 0 && spaceId === "comandancia") {
+          return { text: `JAILED (${fig.captures}/3) • $${fig.stolen.toLocaleString()}`, cls: "jailed" };
+        }
+        if (fig.role === "thief") {
+          const place = HEISTS[spaceId]
+            ? `${HEISTS[spaceId].name} (+${HEISTS[spaceId].shortVal})`
+            : (spaceId === "comandancia" ? "Comandancia" : "Street");
+          return {
+            text: `${place} • $${fig.stolen.toLocaleString()} (${fig.captures}/3)`,
+            cls: HEISTS[spaceId] ? "on-heist" : ""
+          };
+        }
+        if (spaceId === "comandancia") return { text: "Comandancia Base", cls: "" };
+        if (HEISTS[spaceId]) {
+          const h = HEISTS[spaceId];
+          return { text: `${h.name} • ${h.tier} • ${h.value}`, cls: "on-heist" };
+        }
+        if (CORNERS[spaceId]) {
+          const co = CORNERS[spaceId];
+          return { text: co.color === "orange" ? "Orange Corner" : "Blue Corner", cls: "" };
+        }
+        return { text: "Street", cls: "" };
+      }
+
+      function getFigureCoords(fig) {
+        const sameSpace = figures.filter(f => f.space === fig.space);
+        const base = getSpaceCenter(fig.space);
+        if (sameSpace.length === 1) return { x: base.cx, y: base.cy };
+
+        const idx = sameSpace.findIndex(f => f.id === fig.id);
+        if (fig.space === "comandancia") {
+          const spots = [
+            { x: c20.cx - 8, y: c20.cy + 10 },
+            { x: c40.cx - 8, y: c40.cy - 10 },
+            { x: c30.cx + 4, y: c30.cy },
+            { x: c30.cx - 16, y: c30.cy }
+          ];
+          return spots[idx % spots.length];
+        }
+        const angle = (idx / sameSpace.length) * Math.PI * 2 - Math.PI / 4;
+        const offsetR = sameSpace.length === 2 ? 15 : 18;
+        return {
+          x: base.cx + offsetR * Math.cos(angle),
+          y: base.cy + offsetR * Math.sin(angle)
+        };
+      }
+
+      const tokenNodes = new Map();
+      for (const fig of INITIAL_FIGURES) {
+        const g = el("g", { class: "token-group", filter: "url(#token-shadow)" }, tokenLayer);
+        el("circle", { cx: 0, cy: 0, r: 24, class: "token-ring" }, g);
+        el("polygon", {
+          points: "0,-25 -7.5,-36 7.5,-36",
+          class: "token-turn-marker"
+        }, g);
+
+        if (fig.id === "P1") {
+          // P1: Royal Blue Shield / Octagon with Gold Star
+          const octPts = [];
+          for (let i = 0; i < 8; i++) {
+            const a = (i * 45 + 22.5) * (Math.PI / 180);
+            octPts.push(`${(19.5 * Math.cos(a)).toFixed(1)},${(19.5 * Math.sin(a)).toFixed(1)}`);
+          }
+          el("polygon", { points: octPts.join(" "), fill: "#0f172a" }, g);
+          el("polygon", {
+            points: octPts.join(" "),
+            transform: "scale(0.88)",
+            fill: "#2563eb",
+            stroke: "#ffffff",
+            "stroke-width": "2.4"
+          }, g);
+          el("text", {
+            x: 0, y: -6, "text-anchor": "middle", "font-size": "9.5",
+            fill: "#facc15", "pointer-events": "none"
+          }, g).textContent = "★";
+        } else if (fig.id === "P2") {
+          // P2: Cyan-Teal Hexagon Badge with Chevrons
+          const hexPts = [];
+          for (let i = 0; i < 6; i++) {
+            const a = (i * 60) * (Math.PI / 180);
+            hexPts.push(`${(20 * Math.cos(a)).toFixed(1)},${(20 * Math.sin(a)).toFixed(1)}`);
+          }
+          el("polygon", { points: hexPts.join(" "), fill: "#0f172a" }, g);
+          el("polygon", {
+            points: hexPts.join(" "),
+            transform: "scale(0.88)",
+            fill: "#0284c7",
+            stroke: "#ffffff",
+            "stroke-width": "2.4"
+          }, g);
+          el("path", {
+            d: "M -7 -7 L 0 -11 L 7 -7",
+            fill: "none", stroke: "#bae6fd", "stroke-width": "2", "stroke-linecap": "round"
+          }, g);
+        } else if (fig.id === "T1") {
+          // T1: Bright Orange Circle with Bandit Eye-Mask
+          el("circle", { cx: 0, cy: 0, r: 19.5, fill: "#0f172a" }, g);
+          el("circle", {
+            cx: 0, cy: 0, r: 17,
+            fill: "#f97316",
+            stroke: "#ffffff",
+            "stroke-width": "2.4"
+          }, g);
+          el("rect", {
+            x: -10, y: -11, width: 20, height: 6.5, rx: 3,
+            fill: "#111827", opacity: "0.88"
+          }, g);
+        } else {
+          // T2: Amber-Gold Rounded Square with Hood Accent
+          el("rect", {
+            x: -18.5, y: -18.5, width: 37, height: 37, rx: 10,
+            fill: "#0f172a"
+          }, g);
+          el("rect", {
+            x: -16, y: -16, width: 32, height: 32, rx: 8,
+            fill: "#d97706",
+            stroke: "#ffffff",
+            "stroke-width": "2.4"
+          }, g);
+          el("path", {
+            d: "M -11 -7 Q 0 -14 11 -7 L 9 -3 L -9 -3 Z",
+            fill: "#111827", opacity: "0.85"
+          }, g);
+        }
+
+        const txt = el("text", {
+          x: 0, y: 7.5,
+          "text-anchor": "middle", "font-size": "13", "font-weight": "900",
+          fill: "#ffffff", "pointer-events": "none",
+          style: "text-shadow: 0 1px 2px rgba(0,0,0,0.6);"
+        }, g);
+        txt.textContent = fig.id;
+
+        tokenNodes.set(fig.id, g);
+        g.addEventListener("pointerdown", (e) => onTokenPointerDown(e, fig.id));
+      }
+
+      function svgPointFromEvent(e) {
+        const pt = svg.createSVGPoint();
+        pt.x = e.clientX;
+        pt.y = e.clientY;
+        return pt.matrixTransform(svg.getScreenCTM().inverse());
+      }
+
+      function findNearestSpace(x, y) {
+        let bestId = null;
+        let bestDist = Infinity;
+        for (const cell of cells.values()) {
+          const d = Math.hypot(x - cell.cx, y - cell.cy);
+          const id = COMANDANCIA_CELLS.has(cell.key) ? "comandancia" : cell.key;
+          if (d < bestDist) {
+            bestDist = d;
+            bestId = id;
+          }
+        }
+        return bestDist <= R_PX * 1.45 ? bestId : null;
+      }
+
+      function clearDropTargets() {
+        for (const poly of spaceElements.values()) poly.classList.remove("drop-target");
+      }
+
+      function onTokenPointerDown(e, figId) {
+        e.stopPropagation();
+        if (!sandboxMode) {
+          // If clicking a token that sits on a reachable hex (e.g. Police capturing a Thief), treat as clicking that hex!
+          const clickedFig = figures.find(f => f.id === figId);
+          if (clickedFig && reachableSpaces.has(clickedFig.space)) {
+            handleSpaceClick(clickedFig.space);
+          }
+          return;
+        }
+
+        const pt = svgPointFromEvent(e);
+        const node = tokenNodes.get(figId);
+        const fig = figures.find(f => f.id === figId);
+        const pos = getFigureCoords(fig);
+        tokenLayer.appendChild(node);
+
+        dragState = {
+          figId,
+          startX: pt.x,
+          startY: pt.y,
+          offsetX: pos.x - pt.x,
+          offsetY: pos.y - pt.y,
+          moved: false,
+          hoverSpace: null
+        };
+        node.setPointerCapture(e.pointerId);
+      }
+
+      window.addEventListener("pointermove", (e) => {
+        if (!dragState) return;
+        const pt = svgPointFromEvent(e);
+        if (Math.hypot(pt.x - dragState.startX, pt.y - dragState.startY) > 4) {
+          dragState.moved = true;
+          const node = tokenNodes.get(dragState.figId);
+          node.classList.add("dragging");
+          const nx = pt.x + dragState.offsetX;
+          const ny = pt.y + dragState.offsetY;
+          node.setAttribute("transform", `translate(${nx.toFixed(2)}, ${ny.toFixed(2)})`);
+
+          const target = findNearestSpace(nx, ny);
+          if (target !== dragState.hoverSpace) {
+            clearDropTargets();
+            dragState.hoverSpace = target;
+            if (target && spaceElements.has(target)) {
+              spaceElements.get(target).classList.add("drop-target");
+            }
+          }
+        }
+      });
+
+      window.addEventListener("pointerup", () => {
+        if (!dragState) return;
+        const { figId, moved, hoverSpace } = dragState;
+        const node = tokenNodes.get(figId);
+        node.classList.remove("dragging");
+        clearDropTargets();
+
+        if (moved && hoverSpace) {
+          const fig = figures.find(f => f.id === figId);
+          if (fig) applyMoveEffects(fig, hoverSpace);
+          sandboxSelectedId = figId;
+        } else if (!moved) {
+          sandboxSelectedId = sandboxSelectedId === figId ? null : figId;
+        }
+
+        dragState = null;
+        render();
+      });
+
+      // --- 6. UI Render ---
+      const hudFiguresEl = document.getElementById("hud-figures");
+      const turnPillsEl = document.getElementById("turn-pills");
+      const rollBtn = document.getElementById("btn-roll");
+
+      function render() {
+        const active = getActiveFigure();
+        const hudBar = document.querySelector(".hud-bar");
+        const sidePanel = document.getElementById("side-dice-panel");
+        const sideSub = document.getElementById("side-dice-sub");
+        const sideRollBtn = document.getElementById("btn-roll-side");
+        const turnBadge = document.getElementById("active-turn-badge");
+
+        // Team-colored HUD frame & prominent active turn badge
+        hudBar.classList.remove("turn-police", "turn-thief");
+        sidePanel.classList.remove("turn-police", "turn-thief");
+        if (sandboxMode) {
+          turnBadge.className = "active-turn-badge sandbox";
+          turnBadge.textContent = sandboxSelectedId ? `SANDBOX • ${sandboxSelectedId}` : "SANDBOX MODE";
+        } else {
+          const teamClass = active.role === "police" ? "turn-police" : "turn-thief";
+          hudBar.classList.add(teamClass);
+          sidePanel.classList.add(teamClass);
+          turnBadge.className = `active-turn-badge ${active.role}`;
+          turnBadge.textContent = `${active.role === "police" ? "POLICE" : "THIEF"} • ${active.id}`;
+        }
+
+        // Highlight reachable hexes
+        for (const [id, poly] of spaceElements.entries()) {
+          poly.classList.toggle("reachable", !sandboxMode && reachableSpaces.has(id));
+        }
+
+        // Update tokens
+        for (const fig of figures) {
+          const node = tokenNodes.get(fig.id);
+          const pos = getFigureCoords(fig);
+          const isSelected = sandboxMode ? (fig.id === sandboxSelectedId) : (fig.id === active.id && !gameOver);
+          const scale = isSelected ? 1.18 : 0.94;
+          node.setAttribute("transform", `translate(${pos.x.toFixed(2)}, ${pos.y.toFixed(2)}) scale(${scale})`);
+          node.classList.toggle("selected", isSelected);
+        }
+
+        // Bring active token on top
+        const topId = sandboxMode ? sandboxSelectedId : active.id;
+        if (topId && tokenNodes.has(topId)) {
+          tokenLayer.appendChild(tokenNodes.get(topId));
+        }
+
+        // Update Turn Pills
+        turnPillsEl.innerHTML = "";
+        for (const id of TURN_ORDER) {
+          const role = id.startsWith("P") ? "police" : "thief";
+          const pill = document.createElement("span");
+          pill.className = `turn-pill ${role}${!sandboxMode && active.id === id ? " active" : ""}`;
+          pill.textContent = id;
+          turnPillsEl.appendChild(pill);
+        }
+
+        // Update Roll / Jail Button (HUD + Side Panel)
+        if (sandboxMode || gameOver) {
+          rollBtn.disabled = true;
+          rollBtn.textContent = "Roll Dice";
+          rollBtn.className = "btn btn-primary";
+          sideRollBtn.disabled = true;
+          sideRollBtn.textContent = "Roll Dice";
+          sideRollBtn.className = "btn btn-primary";
+          sideSub.textContent = sandboxMode ? "Sandbox active" : "Game Over";
+        } else if (active.jailedTurns > 0) {
+          rollBtn.disabled = false;
+          rollBtn.textContent = "Serve Jail Turn";
+          rollBtn.className = "btn btn-jail";
+          sideRollBtn.disabled = false;
+          sideRollBtn.textContent = "Serve Jail Turn";
+          sideRollBtn.className = "btn btn-jail";
+          sideSub.textContent = `${active.id} is in Jail`;
+        } else {
+          rollBtn.disabled = currentRoll !== null;
+          rollBtn.textContent = "Roll Dice";
+          rollBtn.className = "btn btn-primary";
+          sideRollBtn.disabled = currentRoll !== null;
+          sideRollBtn.textContent = "Roll Dice";
+          sideRollBtn.className = "btn btn-primary";
+          if (currentRoll === null) {
+            sideSub.textContent = `${active.id}: Roll to move`;
+          } else if (currentRoll === 0) {
+            sideSub.textContent = "No movement";
+          } else {
+            sideSub.textContent = `Move up to ${currentRoll} hex${currentRoll > 1 ? "es" : ""}`;
+          }
+        }
+
+        // Update Vault Goal
+        const totalStolen = getTotalStolen();
+        const pct = Math.min(100, (totalStolen / GOAL_AMOUNT) * 100);
+        document.getElementById("vault-amount").textContent =
+          `$${totalStolen.toLocaleString()} / $100,000`;
+        document.getElementById("vault-bar-fill").style.width = `${pct}%`;
+
+        // Update HUD Figure Cards
+        hudFiguresEl.innerHTML = "";
+        for (const fig of figures) {
+          const isTurn = sandboxMode ? (fig.id === sandboxSelectedId) : (fig.id === active.id);
+          const card = document.createElement("div");
+          const roleClass = isTurn ? ` ${fig.role}-turn` : "";
+          card.className = `figure-card${isTurn ? " active-turn" + roleClass : ""}`;
+          const sub = getSpaceSubInfo(fig.space, fig);
+
+          card.innerHTML = `
+            <div class="figure-dot ${fig.role} ${fig.id.toLowerCase()}">${fig.id}</div>
+            <div class="figure-info">
+              <div class="figure-pos">${formatSpaceLabel(fig.space)}</div>
+              <div class="figure-heist ${sub.cls}">${sub.text}</div>
+            </div>
+            ${isTurn ? '<span class="turn-tag">TURN</span>' : ""}
+          `;
+
+          card.addEventListener("click", () => {
+            if (!sandboxMode) return;
+            sandboxSelectedId = sandboxSelectedId === fig.id ? null : fig.id;
+            render();
+          });
+
+          hudFiguresEl.appendChild(card);
+        }
+      }
+
+      // Controls
+      rollBtn.addEventListener("click", rollDice);
+      document.getElementById("btn-roll-side").addEventListener("click", rollDice);
+      document.getElementById("btn-reset").addEventListener("click", resetGame);
+      document.getElementById("btn-play-again").addEventListener("click", resetGame);
+
+      const sandboxBtn = document.getElementById("btn-sandbox");
+      sandboxBtn.addEventListener("click", () => {
+        sandboxMode = !sandboxMode;
+        sandboxBtn.textContent = sandboxMode ? "Sandbox: On" : "Sandbox: Off";
+        sandboxBtn.classList.toggle("btn-active-mode", sandboxMode);
+        document.getElementById("turn-instruction").textContent = sandboxMode
+          ? "Sandbox Mode: Click or drag any figure freely"
+          : "Roll the dice (0, 1, 1, 2, 2, 3) to move the active figure";
+        if (sandboxMode) {
+          setLog("Sandbox Mode active — drag & drop or click any figure to move freely.");
+        } else {
+          const active = getActiveFigure();
+          setLog(`${active.id}'s turn — Roll the dice!`);
+        }
+        render();
+      });
+
+      const toggleCoordsBtn = document.getElementById("btn-toggle-coords");
+      toggleCoordsBtn.addEventListener("click", () => {
+        const hidden = svg.classList.toggle("hide-coords");
+        toggleCoordsBtn.textContent = hidden ? "Show Coords" : "Hide Coords";
+      });
+
+      resetGame();
+    })();
+  </script>
+</body>
+</html>
