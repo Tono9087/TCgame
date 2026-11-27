@@ -2,975 +2,1086 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Hex Heist Board Game (56 cm × 34 cm)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0d1017" />
+  <title>Hex Heist — Cops vs. Robbers</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpolygon points='16,2 28,9 28,23 16,30 4,23 4,9' fill='%23f97316' stroke='%233b82f6' stroke-width='3'/%3E%3C/svg%3E" />
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js" defer></script>
   <style>
     :root {
-      --bg-table: #181c24;
-      --bg-panel: #222733;
-      --border-panel: #323949;
-      --text-main: #f1f5f9;
-      --text-muted: #94a3b8;
-      --accent-blue: #3b82f6;
-      --accent-orange: #f97316;
-      --accent-red: #ef4444;
-      --accent-gold: #facc15;
+      --bg: #0d1017;
+      --panel: #151a24;
+      --panel-2: #1b2130;
+      --panel-3: #232a3b;
+      --line: #2a3346;
+      --line-2: #39445c;
+      --text: #eef2f7;
+      --muted: #8b96a8;
+      --police: #3b82f6;
+      --police-dk: #1d4ed8;
+      --thief: #f97316;
+      --thief-dk: #c2410c;
+      --gold: #facc15;
+      --green: #22c55e;
+      --red: #ef4444;
+      --topbar-h: 60px;
+      --radius: 14px;
     }
 
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body { height: 100%; }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
-      background: radial-gradient(circle at 50% 35%, #232936 0%, var(--bg-table) 100%);
-      color: var(--text-main);
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 12px 16px;
-      gap: 10px;
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background:
+        radial-gradient(1200px 600px at 30% -10%, rgba(59, 130, 246, 0.10), transparent 60%),
+        radial-gradient(1000px 600px at 90% 110%, rgba(249, 115, 22, 0.08), transparent 60%),
+        var(--bg);
+      color: var(--text);
+      min-height: 100dvh;
       user-select: none;
+      -webkit-tap-highlight-color: transparent;
     }
 
-    /* Top HUD Bar */
-    .hud-bar {
-      width: 100%;
-      max-width: 1160px;
-      background: var(--bg-panel);
-      border: 2px solid var(--border-panel);
-      border-radius: 12px;
-      padding: 10px 14px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
-      transition: border-color 0.2s, box-shadow 0.2s;
-    }
+    button { font: inherit; color: inherit; }
+    input { font: inherit; }
 
-    .hud-bar.turn-police {
-      border-color: #3b82f6;
-      box-shadow: 0 8px 28px rgba(37, 99, 235, 0.28);
-    }
-
-    .hud-bar.turn-thief {
-      border-color: #f97316;
-      box-shadow: 0 8px 28px rgba(249, 115, 22, 0.28);
-    }
-
-    .active-turn-badge {
-      display: flex;
+    /* ---------- Buttons ---------- */
+    .btn {
+      display: inline-flex;
       align-items: center;
+      justify-content: center;
       gap: 7px;
-      padding: 6px 12px;
-      border-radius: 8px;
+      background: var(--panel-3);
+      color: var(--text);
+      border: 1px solid var(--line-2);
+      border-radius: 10px;
+      padding: 8px 13px;
       font-size: 13px;
-      font-weight: 800;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-      color: #ffffff;
+      font-weight: 650;
+      cursor: pointer;
       white-space: nowrap;
+      transition: background 0.15s, border-color 0.15s, transform 0.08s, opacity 0.15s, box-shadow 0.15s;
     }
+    .btn:hover:not(:disabled) { background: #2c3549; border-color: #4b587a; }
+    .btn:active:not(:disabled) { transform: translateY(1px); }
+    .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+    .btn:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 
-    .active-turn-badge.police {
-      background: linear-gradient(135deg, #2563eb, #1d4ed8);
-      box-shadow: 0 0 12px rgba(59, 130, 246, 0.45);
-    }
+    .btn-icon { padding: 8px 10px; min-width: 38px; }
+    .btn-ghost { background: transparent; border-color: transparent; color: var(--muted); }
+    .btn-ghost:hover:not(:disabled) { background: var(--panel-3); color: var(--text); border-color: var(--line); }
+    .btn-primary { background: linear-gradient(180deg, #3b82f6, #2563eb); border-color: #60a5fa; }
+    .btn-primary:hover:not(:disabled) { background: linear-gradient(180deg, #4f8ff7, #1d4ed8); border-color: #93c5fd; }
+    .btn-thief { background: linear-gradient(180deg, #fb923c, #ea580c); border-color: #fdba74; }
+    .btn-thief:hover:not(:disabled) { background: linear-gradient(180deg, #fdba74, #c2410c); border-color: #fed7aa; }
+    .btn-gold { background: linear-gradient(180deg, #fde047, #eab308); border-color: #fef08a; color: #1c1917; }
+    .btn-gold:hover:not(:disabled) { background: linear-gradient(180deg, #fef08a, #ca8a04); }
+    .btn-jail { background: linear-gradient(180deg, #d97706, #b45309); border-color: #f59e0b; }
+    .btn-danger { background: #3a1518; border-color: #7f1d1d; color: #fecaca; }
+    .btn-danger:hover:not(:disabled) { background: #5a1a1f; border-color: #b91c1c; }
+    .btn-on { background: #0f766e; border-color: #14b8a6; color: #ecfeff; }
+    .btn-lg { padding: 13px 18px; font-size: 15px; border-radius: 12px; font-weight: 750; }
+    .btn-block { width: 100%; }
 
-    .active-turn-badge.thief {
-      background: linear-gradient(135deg, #f97316, #c2410c);
-      box-shadow: 0 0 12px rgba(249, 115, 22, 0.45);
-    }
-
-    .active-turn-badge.sandbox {
-      background: #0f766e;
-    }
-
-    .hud-top-row {
+    /* ---------- Top bar ---------- */
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      height: var(--topbar-h);
       display: flex;
-      flex-wrap: wrap;
       align-items: center;
-      justify-content: space-between;
-      gap: 12px;
+      gap: 16px;
+      padding: 0 18px;
+      background: rgba(13, 16, 23, 0.86);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--line);
     }
 
-    .hud-title-group {
+    .brand {
       display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-
-    .hud-title {
+      align-items: center;
+      gap: 10px;
+      font-weight: 900;
+      letter-spacing: 0.14em;
       font-size: 15px;
-      font-weight: 700;
-      letter-spacing: 0.02em;
-      display: flex;
-      align-items: center;
-      gap: 8px;
+      flex-shrink: 0;
+    }
+    .brand svg { width: 28px; height: 28px; }
+    .brand small {
+      font-size: 10px;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      font-weight: 600;
+      display: block;
     }
 
-    .hud-subtitle {
-      font-size: 11.5px;
-      color: var(--text-muted);
-    }
-
-    /* Stolen Money Progress */
-    .vault-box {
+    .vault {
+      flex: 1;
+      max-width: 460px;
+      margin: 0 auto;
       display: flex;
       flex-direction: column;
-      gap: 4px;
-      min-width: 220px;
-      background: #1a1e28;
-      border: 1px solid #2e3545;
-      border-radius: 9px;
-      padding: 6px 11px;
+      gap: 5px;
     }
-
-    .vault-header {
+    .vault-head {
       display: flex;
       justify-content: space-between;
       align-items: baseline;
-      font-size: 11.5px;
+      font-size: 11px;
       font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
     }
-
-    .vault-amount {
-      color: #fca5a5;
-      font-size: 13px;
-    }
-
-    .vault-bar-bg {
-      width: 100%;
-      height: 7px;
-      background: #2b3242;
+    .vault-amount { color: #fde68a; font-size: 13px; letter-spacing: 0.02em; font-variant-numeric: tabular-nums; }
+    .vault-track {
+      height: 8px;
+      background: #1f2636;
       border-radius: 99px;
       overflow: hidden;
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5);
     }
-
-    .vault-bar-fill {
+    .vault-fill {
       height: 100%;
       width: 0%;
-      background: linear-gradient(90deg, #f97316, #ef4444, #facc15);
+      background: linear-gradient(90deg, #f97316, #ef4444 60%, #facc15);
       border-radius: 99px;
-      transition: width 0.3s ease;
+      transition: width 0.5s cubic-bezier(.2, .8, .2, 1);
+      box-shadow: 0 0 12px rgba(249, 115, 22, 0.6);
     }
 
-    /* Turn & Dice Control */
-    .turn-dice-box {
-      display: flex;
+    .top-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+
+    .match-chip {
+      display: none;
       align-items: center;
-      gap: 10px;
-      background: #1a1e28;
-      border: 1px solid #2e3545;
-      border-radius: 9px;
+      gap: 8px;
       padding: 6px 10px;
+      border-radius: 10px;
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .match-chip.show { display: inline-flex; }
+    .match-chip code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 14px; letter-spacing: 0.14em; color: var(--gold); }
+    .net-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 8px var(--green); }
+    .net-dot.off { background: var(--red); box-shadow: 0 0 8px var(--red); }
+
+    /* ---------- Layout ---------- */
+    .game {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 330px;
+      gap: 16px;
+      padding: 16px 18px 18px;
+      min-height: calc(100dvh - var(--topbar-h));
+      max-width: 1680px;
+      margin: 0 auto;
     }
 
-    .turn-order-pills {
+    .board-area {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    svg#board {
+      display: block;
+      width: min(100%, calc((100dvh - var(--topbar-h) - 80px) * 56 / 34));
+      height: auto;
+      aspect-ratio: 56 / 34;
+      border-radius: 14px;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.06);
+      background: #ede8dc;
+      touch-action: manipulation;
+      transition: box-shadow 0.25s;
+    }
+    .board-area.turn-police svg#board { box-shadow: 0 24px 60px rgba(0, 0, 0, 0.65), 0 0 0 3px rgba(59, 130, 246, 0.55), 0 0 40px rgba(59, 130, 246, 0.18); }
+    .board-area.turn-thief svg#board { box-shadow: 0 24px 60px rgba(0, 0, 0, 0.65), 0 0 0 3px rgba(249, 115, 22, 0.55), 0 0 40px rgba(249, 115, 22, 0.18); }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px 16px;
+      font-size: 11.5px;
+      color: var(--muted);
+      justify-content: center;
+    }
+    .legend-item { display: flex; align-items: center; gap: 6px; }
+    .swatch { width: 12px; height: 12px; border-radius: 3px; border: 1px solid rgba(255, 255, 255, 0.2); }
+
+    /* ---------- Sidebar ---------- */
+    .sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      min-width: 0;
+      min-height: 0;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 14px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    }
+    .card-title {
+      font-size: 10.5px;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 10px;
       display: flex;
       align-items: center;
-      gap: 4px;
+      justify-content: space-between;
     }
 
-    .turn-pill {
-      font-size: 11px;
+    /* Turn card */
+    .turn-card {
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .turn-card::before {
+      content: "";
+      position: absolute;
+      inset: 0 0 auto 0;
+      height: 4px;
+      background: var(--line-2);
+    }
+    .turn-card.police { border-color: rgba(59, 130, 246, 0.6); box-shadow: 0 10px 30px rgba(37, 99, 235, 0.18); }
+    .turn-card.police::before { background: linear-gradient(90deg, #60a5fa, #1d4ed8); }
+    .turn-card.thief { border-color: rgba(249, 115, 22, 0.6); box-shadow: 0 10px 30px rgba(249, 115, 22, 0.16); }
+    .turn-card.thief::before { background: linear-gradient(90deg, #fdba74, #c2410c); }
+    .turn-card.mine { animation: mineGlow 2.2s ease-in-out infinite; }
+    @keyframes mineGlow {
+      0%, 100% { box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3), 0 0 0 0 rgba(250, 204, 21, 0); }
+      50% { box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3), 0 0 0 3px rgba(250, 204, 21, 0.35); }
+    }
+
+    .turn-head { display: flex; align-items: center; gap: 12px; }
+    .turn-head .who { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .turn-team {
+      font-size: 10.5px;
       font-weight: 800;
-      padding: 4px 7px;
-      border-radius: 6px;
-      opacity: 0.45;
-      border: 1.5px solid transparent;
-      transition: all 0.15s;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+    .turn-team.police { color: #93c5fd; }
+    .turn-team.thief { color: #fdba74; }
+    .turn-team.sandbox { color: #5eead4; }
+    .turn-headline {
+      font-size: 20px;
+      font-weight: 850;
+      letter-spacing: -0.01em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
-    .turn-pill.police {
-      background: #1e3a8a;
-      color: #dbeafe;
-    }
+    .dice-row { display: flex; align-items: center; gap: 14px; }
 
-    .turn-pill.thief {
-      background: #7c2d12;
-      color: #ffedd5;
+    .die {
+      width: 86px;
+      height: 86px;
+      flex-shrink: 0;
+      border-radius: 18px;
+      background: linear-gradient(160deg, #ffffff, #e2e8f0);
+      box-shadow: inset 0 -5px 0 #cbd5e1, inset 0 2px 0 #fff, 0 10px 22px rgba(0, 0, 0, 0.5);
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: repeat(3, 1fr);
+      padding: 14px;
+      position: relative;
     }
-
-    .turn-pill.active {
-      opacity: 1;
-      border-color: var(--accent-gold);
-      transform: scale(1.06);
-      box-shadow: 0 0 8px rgba(250, 204, 21, 0.35);
-    }
-
-    .dice-face {
-      width: 36px;
-      height: 36px;
-      border-radius: 8px;
-      background: #f8fafc;
-      color: #0f172a;
-      font-size: 18px;
-      font-weight: 900;
+    .pip { border-radius: 50%; margin: 3px; background: transparent; }
+    .pip.on { background: radial-gradient(circle at 35% 35%, #334155, #0f172a); }
+    .die-num {
+      position: absolute;
+      inset: 0;
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: inset 0 -2px 0 #cbd5e1, 0 2px 6px rgba(0, 0, 0, 0.4);
-      flex-shrink: 0;
+      font-size: 44px;
+      font-weight: 900;
+      color: #94a3b8;
+    }
+    .die.rolling { animation: dieRoll 0.5s ease-out; }
+    @keyframes dieRoll {
+      0% { transform: rotate(0) scale(1); }
+      20% { transform: rotate(-25deg) scale(1.12); }
+      45% { transform: rotate(30deg) scale(0.94); }
+      70% { transform: rotate(-12deg) scale(1.06); }
+      100% { transform: rotate(0) scale(1); }
     }
 
-    .dice-face.rolling {
-      animation: diceShake 0.25s infinite;
+    .dice-side { display: flex; flex-direction: column; gap: 8px; flex: 1; min-width: 0; }
+    .dice-faces { font-size: 11px; color: var(--muted); }
+    .dice-faces b { color: var(--text); font-variant-numeric: tabular-nums; letter-spacing: 0.08em; }
+    .turn-hint {
+      font-size: 13px;
+      color: #cbd5e1;
+      line-height: 1.4;
+      min-height: 36px;
+    }
+    .kbd {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 1px 5px;
+      border: 1px solid var(--line-2);
+      border-bottom-width: 2px;
+      border-radius: 4px;
+      color: var(--muted);
+      font-family: ui-monospace, monospace;
     }
 
-    @keyframes diceShake {
-      0%, 100% { transform: rotate(0deg); }
-      25% { transform: rotate(-10deg) scale(1.05); }
-      75% { transform: rotate(10deg) scale(1.05); }
-    }
-
-    .hud-actions {
-      display: flex;
-      align-items: center;
-      gap: 7px;
-      flex-wrap: wrap;
-    }
-
-    .btn {
-      background: #2e3646;
-      color: #f8fafc;
-      border: 1px solid #424c61;
-      border-radius: 8px;
-      padding: 7px 11px;
+    /* Turn order */
+    .order { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+    .order-pill {
+      text-align: center;
       font-size: 12px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background 0.15s, border-color 0.15s, opacity 0.15s;
-    }
-
-    .btn:hover:not(:disabled) {
-      background: #3b4559;
-      border-color: #5b6782;
-    }
-
-    .btn:disabled {
-      opacity: 0.45;
-      cursor: not-allowed;
-    }
-
-    .btn-primary {
-      background: #2563eb;
-      border-color: #3b82f6;
-    }
-
-    .btn-primary:hover:not(:disabled) {
-      background: #1d4ed8;
-    }
-
-    .btn-jail {
-      background: #b45309;
-      border-color: #d97706;
-    }
-
-    .btn-jail:hover:not(:disabled) {
-      background: #92400e;
-    }
-
-    .btn-reset {
-      background: #7f1d1d;
-      border-color: #991b1b;
-    }
-
-    .btn-reset:hover:not(:disabled) {
-      background: #991b1b;
-      border-color: #b91c1c;
-    }
-
-    .btn-active-mode {
-      background: #0f766e;
-      border-color: #14b8a6;
-    }
-
-    /* Figure Cards Row */
-    .hud-bottom-row {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-    }
-
-    .hud-figures {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      flex: 1;
-    }
-
-    .figure-card {
-      background: #1a1e28;
-      border: 1.5px solid #2e3545;
-      border-radius: 9px;
-      padding: 5px 9px;
-      min-width: 170px;
-      flex: 1;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      cursor: pointer;
-      opacity: 0.6;
-      transition: border-color 0.15s, background 0.15s, opacity 0.15s, transform 0.15s;
-    }
-
-    .figure-card.active-turn {
-      opacity: 1;
-      border-color: var(--accent-gold);
-      background: #283042;
-      transform: translateY(-1px);
-      box-shadow: 0 0 0 1.5px rgba(250, 204, 21, 0.35);
-    }
-
-    .figure-card.active-turn.police-turn {
-      border-color: #60a5fa;
-      box-shadow: 0 0 12px rgba(59, 130, 246, 0.35);
-    }
-
-    .figure-card.active-turn.thief-turn {
-      border-color: #fb923c;
-      box-shadow: 0 0 12px rgba(249, 115, 22, 0.35);
-    }
-
-    .turn-tag {
-      margin-left: auto;
-      font-size: 9.5px;
       font-weight: 800;
-      padding: 2px 6px;
-      border-radius: 5px;
-      background: #facc15;
-      color: #0f172a;
-      letter-spacing: 0.04em;
-      flex-shrink: 0;
+      padding: 6px 2px;
+      border-radius: 8px;
+      opacity: 0.45;
+      border: 1.5px solid transparent;
+      transition: all 0.2s;
+      position: relative;
     }
+    .order-pill.police { background: #172554; color: #dbeafe; }
+    .order-pill.thief { background: #431407; color: #ffedd5; }
+    .order-pill.active { opacity: 1; border-color: var(--gold); box-shadow: 0 0 12px rgba(250, 204, 21, 0.35); transform: translateY(-1px); }
+    .order-pill.out { text-decoration: line-through; opacity: 0.25; }
 
-    .figure-dot {
-      width: 26px;
-      height: 26px;
+    /* Figures */
+    .figures { display: flex; flex-direction: column; gap: 7px; }
+    .fig {
+      display: grid;
+      grid-template-columns: 34px 1fr auto;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: 11px;
+      background: var(--panel-2);
+      border: 1.5px solid transparent;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .fig.active.police { border-color: rgba(96, 165, 250, 0.8); background: #1a2440; }
+    .fig.active.thief { border-color: rgba(251, 146, 60, 0.8); background: #2a1d17; }
+    .fig.clickable { cursor: pointer; }
+    .fig.jailed { background: repeating-linear-gradient(135deg, var(--panel-2) 0 8px, #20242e 8px 16px); }
+
+    .fig-dot {
+      width: 34px;
+      height: 34px;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 10.5px;
-      font-weight: 800;
-      color: #fff;
-      flex-shrink: 0;
-      border: 2px solid rgba(255, 255, 255, 0.85);
-    }
-
-    .figure-dot.police.p1 {
-      background: linear-gradient(135deg, #2563eb, #1e40af);
-    }
-
-    .figure-dot.police.p2 {
-      background: linear-gradient(135deg, #0ea5e9, #0369a1);
-      border-radius: 7px;
-    }
-
-    .figure-dot.thief.t1 {
-      background: linear-gradient(135deg, #f97316, #c2410c);
-    }
-
-    .figure-dot.thief.t2 {
-      background: linear-gradient(135deg, #f59e0b, #b45309);
-      border-radius: 7px;
-    }
-
-    .figure-info {
-      display: flex;
-      flex-direction: column;
-      gap: 1px;
-      min-width: 0;
-    }
-
-    .figure-pos {
       font-size: 11.5px;
-      font-weight: 600;
-      color: #e2e8f0;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .figure-heist {
-      font-size: 10.5px;
-      color: var(--text-muted);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .figure-heist.on-heist {
-      color: #fca5a5;
-      font-weight: 600;
-    }
-
-    .figure-heist.jailed {
-      color: #fbbf24;
-      font-weight: 700;
-    }
-
-    .status-log {
-      font-size: 12px;
-      color: #cbd5e1;
-      background: #161a22;
-      border: 1px solid #2b3242;
-      border-radius: 8px;
-      padding: 6px 10px;
-      min-width: 260px;
-      max-width: 380px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    /* Board Container */
-    .board-wrapper {
-      width: 100%;
-      max-width: 1260px;
-      flex: 1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 16px;
-      position: relative;
-    }
-
-    svg#board {
-      flex: 1;
-      min-width: 0;
-      width: 100%;
-      max-height: calc(100vh - 195px);
-      height: auto;
-      aspect-ratio: 56 / 34;
-      border-radius: 10px;
-      box-shadow: 0 18px 48px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.08);
-      background: #ede8dc;
-      touch-action: none;
-    }
-
-    /* Big Side Dice Panel */
-    .side-dice-panel {
-      width: 168px;
-      flex-shrink: 0;
-      background: var(--bg-panel);
-      border: 2px solid var(--border-panel);
-      border-radius: 14px;
-      padding: 16px 14px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 12px;
-      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
-      transition: border-color 0.2s, box-shadow 0.2s;
-    }
-
-    .side-dice-panel.turn-police {
-      border-color: #3b82f6;
-      box-shadow: 0 12px 32px rgba(37, 99, 235, 0.25);
-    }
-
-    .side-dice-panel.turn-thief {
-      border-color: #f97316;
-      box-shadow: 0 12px 32px rgba(249, 115, 22, 0.25);
-    }
-
-    .side-dice-label {
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: var(--text-muted);
-    }
-
-    .side-dice-big {
-      width: 116px;
-      height: 116px;
-      border-radius: 20px;
-      background: #f8fafc;
-      color: #0f172a;
-      font-size: 74px;
       font-weight: 900;
-      line-height: 1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: inset 0 -5px 0 #cbd5e1, 0 8px 20px rgba(0, 0, 0, 0.45);
-      transition: transform 0.15s;
+      color: #fff;
+      border: 2px solid rgba(255, 255, 255, 0.85);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
     }
+    .fig-dot.p1 { background: linear-gradient(135deg, #2563eb, #1e40af); }
+    .fig-dot.p2 { background: linear-gradient(135deg, #0ea5e9, #0369a1); border-radius: 9px; }
+    .fig-dot.t1 { background: linear-gradient(135deg, #f97316, #c2410c); }
+    .fig-dot.t2 { background: linear-gradient(135deg, #f59e0b, #b45309); border-radius: 9px; }
 
-    .side-dice-big.rolling {
-      animation: diceShake 0.25s infinite;
-    }
-
-    .side-dice-sub {
-      font-size: 12px;
-      font-weight: 600;
-      color: #cbd5e1;
-      text-align: center;
-      min-height: 32px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    @media (max-width: 900px) {
-      .board-wrapper {
-        flex-direction: column;
-      }
-      .side-dice-panel {
-        width: 100%;
-        flex-direction: row;
-        justify-content: space-between;
-        padding: 10px 16px;
-      }
-      .side-dice-big {
-        width: 68px;
-        height: 68px;
-        font-size: 42px;
-        border-radius: 12px;
-      }
-    }
-
-    /* Hex Styles */
-    .hex-shape {
-      cursor: pointer;
-      transition: filter 0.12s ease, stroke-width 0.12s ease;
-    }
-
-    .hex-shape:hover {
-      filter: brightness(1.06);
-    }
-
-    .hex-shape.reachable {
-      stroke: #22c55e !important;
-      stroke-width: 3.2px !important;
-      filter: brightness(1.1);
-    }
-
-    .hex-shape.drop-target {
-      stroke: #facc15 !important;
-      stroke-width: 3.5px !important;
-      filter: brightness(1.12);
-    }
-
-    .hex-coord {
-      font-size: 8.5px;
-      fill: #78716c;
-      font-weight: 600;
-      pointer-events: none;
-      text-anchor: middle;
-      transition: opacity 0.15s;
-    }
-
-    .hide-coords .hex-coord {
-      opacity: 0;
-    }
-
-    .hex-label-title {
-      font-size: 10.5px;
-      font-weight: 800;
-      fill: #ffffff;
-      text-anchor: middle;
-      pointer-events: none;
-      letter-spacing: 0.03em;
-      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.92), 0 0 6px rgba(0, 0, 0, 0.75);
-    }
-
-    .hex-label-sub {
-      font-size: 9.5px;
-      font-weight: 700;
-      fill: rgba(255, 255, 255, 0.95);
-      text-anchor: middle;
-      pointer-events: none;
-      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.92), 0 0 6px rgba(0, 0, 0, 0.75);
-    }
-
-    .comandancia-label {
-      font-size: 12.5px;
-      font-weight: 800;
-      fill: #f1f5f9;
-      text-anchor: middle;
-      letter-spacing: 0.08em;
-      pointer-events: none;
-      text-shadow: 0 1px 4px rgba(0, 0, 0, 0.95), 0 0 8px rgba(0, 0, 0, 0.8);
-    }
-
-    .comandancia-sub {
-      font-size: 9px;
-      font-weight: 600;
-      fill: #e2e8f0;
-      text-anchor: middle;
-      pointer-events: none;
-      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95);
-    }
-
-    /* Tokens */
-    .token-group {
-      cursor: pointer;
-      opacity: 0.65;
-      transition: transform 0.16s ease, opacity 0.16s ease;
-    }
-
-    .token-group.selected {
-      opacity: 1;
-    }
-
-    .token-group.dragging {
-      transition: none;
-      opacity: 0.9;
-      cursor: grabbing;
-    }
-
-    .token-ring {
-      fill: none;
-      stroke: #facc15;
-      stroke-width: 3.5;
-      opacity: 0;
-      pointer-events: none;
-    }
-
-    .token-group.selected .token-ring {
-      opacity: 1;
-      animation: pulseRing 1.4s infinite ease-in-out;
-    }
-
-    .token-turn-marker {
-      fill: #facc15;
-      stroke: #111827;
-      stroke-width: 1.6;
-      stroke-linejoin: round;
-      opacity: 0;
-      pointer-events: none;
-    }
-
-    .token-group.selected .token-turn-marker {
-      opacity: 1;
-      animation: bounceMarker 1s infinite ease-in-out;
-    }
-
-    @keyframes bounceMarker {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-4px); }
-    }
-
-    @keyframes pulseRing {
-      0%, 100% { stroke-opacity: 1; }
-      50% { stroke-opacity: 0.4; }
-    }
-
-    /* Tooltip */
-    #tooltip {
-      position: fixed;
-      pointer-events: none;
-      background: rgba(15, 23, 42, 0.95);
-      color: #f8fafc;
-      border: 1px solid #475569;
-      border-radius: 8px;
-      padding: 7px 11px;
-      font-size: 12px;
-      line-height: 1.4;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.45);
-      z-index: 100;
-      display: none;
-      white-space: nowrap;
-    }
-
-    #tooltip .tt-title { font-weight: 700; font-size: 13px; }
-    #tooltip .tt-tier { color: #fca5a5; font-weight: 600; }
-    #tooltip .tt-coord { color: #94a3b8; font-size: 11px; }
-
-    /* Victory Overlay */
-    .victory-banner {
-      position: absolute;
-      inset: 0;
-      background: rgba(15, 23, 42, 0.82);
-      backdrop-filter: blur(4px);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      border-radius: 10px;
-      z-index: 50;
-    }
-
-    .victory-banner.show {
-      display: flex;
-    }
-
-    .victory-card {
-      background: #1e293b;
-      border: 2px solid #facc15;
-      border-radius: 14px;
-      padding: 24px 32px;
-      text-align: center;
-      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.65);
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      align-items: center;
-    }
-
-    .victory-card h2 {
-      font-size: 24px;
-      color: #facc15;
-    }
-
-    .victory-card p {
-      font-size: 14px;
-      color: #e2e8f0;
-    }
-
-    /* Legend */
-    .legend {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 14px;
-      font-size: 11.5px;
-      color: var(--text-muted);
-      align-items: center;
-      justify-content: center;
-    }
-
-    .legend-item {
+    .fig-main { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+    .fig-name {
+      font-size: 13px;
+      font-weight: 750;
       display: flex;
       align-items: center;
       gap: 6px;
+      white-space: nowrap;
+      overflow: hidden;
+    }
+    .fig-name .owner { color: var(--muted); font-weight: 600; font-size: 12px; overflow: hidden; text-overflow: ellipsis; }
+    .fig-name .online { width: 7px; height: 7px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
+    .fig-name .online.off { background: #64748b; }
+    .fig-loc { font-size: 11.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .fig-loc.heist { color: #fca5a5; font-weight: 600; }
+    .fig-loc.jail { color: #fbbf24; font-weight: 700; }
+
+    .fig-side { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+    .fig-cash { font-size: 13px; font-weight: 800; color: #fde68a; font-variant-numeric: tabular-nums; }
+    .strikes { display: flex; gap: 3px; }
+    .strike { width: 9px; height: 9px; border-radius: 3px; background: #2f3a4f; }
+    .strike.on { background: var(--red); box-shadow: 0 0 6px rgba(239, 68, 68, 0.6); }
+    .you-tag {
+      font-size: 9px;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      padding: 1px 5px;
+      border-radius: 4px;
+      background: var(--gold);
+      color: #1c1917;
+      flex-shrink: 0;
     }
 
-    .swatch {
-      width: 13px;
-      height: 13px;
-      border-radius: 3px;
-      border: 1px solid rgba(255, 255, 255, 0.25);
-    }
-
-    /* Rules Section Below Game */
-    .rules-section {
-      width: 100%;
-      max-width: 1260px;
-      background: var(--bg-panel);
-      border: 1px solid var(--border-panel);
-      border-radius: 12px;
-      padding: 18px 22px;
-      margin-top: 6px;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    /* Log */
+    .log-card { flex: 1; min-height: 140px; display: flex; flex-direction: column; }
+    .log {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      overflow-y: auto;
+      flex: 1;
+      max-height: 260px;
+      padding-right: 4px;
       user-select: text;
     }
+    .log li {
+      font-size: 12.5px;
+      line-height: 1.4;
+      color: #cbd5e1;
+      padding: 6px 9px;
+      border-radius: 8px;
+      background: var(--panel-2);
+      border-left: 3px solid var(--line-2);
+      animation: logIn 0.25s ease-out;
+    }
+    .log li.heist { border-left-color: var(--red); color: #fecaca; }
+    .log li.capture { border-left-color: var(--police); color: #bfdbfe; }
+    .log li.jail { border-left-color: #f59e0b; }
+    .log li.win { border-left-color: var(--gold); color: #fef08a; font-weight: 700; }
+    .log li.system { border-left-color: #64748b; color: var(--muted); font-style: italic; }
+    .log-empty { font-size: 12px; color: var(--muted); }
+    @keyframes logIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
 
-    .rules-header {
-      font-size: 16px;
-      font-weight: 800;
-      letter-spacing: 0.03em;
+    .log::-webkit-scrollbar { width: 6px; }
+    .log::-webkit-scrollbar-thumb { background: var(--line-2); border-radius: 6px; }
+
+    /* ---------- Hex & board ---------- */
+    .hex-shape { cursor: pointer; transition: filter 0.12s ease; }
+    .hex-shape:hover { filter: brightness(1.06); }
+    .hex-shape.reachable {
+      stroke: #16a34a !important;
+      stroke-width: 4px !important;
+      filter: brightness(1.12) drop-shadow(0 0 4px rgba(34, 197, 94, 0.85));
+      animation: reachPulse 1.3s ease-in-out infinite;
+    }
+    .hex-shape.reachable.view-only { animation: none; stroke-dasharray: 6 5; cursor: default; }
+    @keyframes reachPulse {
+      0%, 100% { stroke-opacity: 1; }
+      50% { stroke-opacity: 0.45; }
+    }
+    .hex-shape.drop-target { stroke: #facc15 !important; stroke-width: 3.5px !important; filter: brightness(1.12); }
+
+    .reach-dot { fill: #22c55e; stroke: #ffffff; stroke-width: 2; pointer-events: none; opacity: 0.9; }
+
+    .hex-coord { font-size: 8.5px; fill: #78716c; font-weight: 600; pointer-events: none; text-anchor: middle; transition: opacity 0.15s; }
+    .hide-coords .hex-coord { opacity: 0; }
+
+    .hex-label-title {
+      font-size: 10.5px; font-weight: 800; fill: #ffffff; text-anchor: middle; pointer-events: none; letter-spacing: 0.03em;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.92), 0 0 6px rgba(0, 0, 0, 0.75);
+    }
+    .hex-label-sub {
+      font-size: 9.5px; font-weight: 700; fill: rgba(255, 255, 255, 0.95); text-anchor: middle; pointer-events: none;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.92), 0 0 6px rgba(0, 0, 0, 0.75);
+    }
+    .comandancia-label {
+      font-size: 12.5px; font-weight: 800; fill: #f1f5f9; text-anchor: middle; letter-spacing: 0.08em; pointer-events: none;
+      text-shadow: 0 1px 4px rgba(0, 0, 0, 0.95), 0 0 8px rgba(0, 0, 0, 0.8);
+    }
+    .comandancia-sub {
+      font-size: 9px; font-weight: 600; fill: #e2e8f0; text-anchor: middle; pointer-events: none;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95);
+    }
+
+    .token-group { cursor: pointer; opacity: 0.8; transition: transform 0.35s cubic-bezier(.2, .8, .2, 1), opacity 0.2s ease; }
+    .token-group.selected { opacity: 1; }
+    .token-group.dragging { transition: none; opacity: 0.9; cursor: grabbing; }
+    .token-group.locked { opacity: 0.45; }
+    .token-ring { fill: none; stroke: #facc15; stroke-width: 3.5; opacity: 0; pointer-events: none; }
+    .token-group.selected .token-ring { opacity: 1; animation: pulseRing 1.4s infinite ease-in-out; }
+    .token-turn-marker { fill: #facc15; stroke: #111827; stroke-width: 1.6; stroke-linejoin: round; opacity: 0; pointer-events: none; }
+    .token-group.selected .token-turn-marker { opacity: 1; animation: bounceMarker 1s infinite ease-in-out; }
+    @keyframes bounceMarker { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+    @keyframes pulseRing { 0%, 100% { stroke-opacity: 1; } 50% { stroke-opacity: 0.4; } }
+
+    #tooltip {
+      position: fixed;
+      pointer-events: none;
+      background: rgba(15, 23, 42, 0.96);
       color: #f8fafc;
-      margin-bottom: 14px;
-      padding-bottom: 8px;
-      border-bottom: 1px solid var(--border-panel);
+      border: 1px solid #475569;
+      border-radius: 9px;
+      padding: 8px 11px;
+      font-size: 12px;
+      line-height: 1.45;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.45);
+      z-index: 200;
+      display: none;
+      white-space: nowrap;
+    }
+    #tooltip .tt-title { font-weight: 800; font-size: 13px; }
+    #tooltip .tt-tier { color: #fca5a5; font-weight: 600; }
+    #tooltip .tt-coord { color: #94a3b8; font-size: 11px; }
+
+    /* ---------- Toasts ---------- */
+    .toasts {
+      position: fixed;
+      top: calc(var(--topbar-h) + 14px);
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 150;
       display: flex;
+      flex-direction: column;
       align-items: center;
       gap: 8px;
+      pointer-events: none;
     }
-
-    .rules-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
-      gap: 14px;
+    .toast {
+      padding: 10px 16px;
+      border-radius: 12px;
+      background: rgba(21, 26, 36, 0.96);
+      border: 1px solid var(--line-2);
+      box-shadow: 0 14px 30px rgba(0, 0, 0, 0.5);
+      font-size: 14px;
+      font-weight: 700;
+      animation: toastIn 0.3s cubic-bezier(.2, .8, .2, 1);
+      max-width: min(90vw, 520px);
+      text-align: center;
     }
+    .toast.heist { border-color: #ef4444; background: linear-gradient(180deg, #3a1518, #1f1013); }
+    .toast.capture { border-color: #3b82f6; background: linear-gradient(180deg, #172554, #0f1730); }
+    .toast.turn { border-color: var(--gold); background: linear-gradient(180deg, #3b3410, #1f1c0c); color: #fef08a; }
+    .toast.out { animation: toastOut 0.3s ease-in forwards; }
+    @keyframes toastIn { from { opacity: 0; transform: translateY(-10px) scale(0.96); } to { opacity: 1; transform: none; } }
+    @keyframes toastOut { to { opacity: 0; transform: translateY(-8px); } }
 
+    /* ---------- Overlays ---------- */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: rgba(7, 9, 14, 0.72);
+      backdrop-filter: blur(8px);
+      overflow-y: auto;
+    }
+    .overlay.show { display: flex; animation: fadeIn 0.2s ease-out; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+    .modal {
+      width: 100%;
+      max-width: 520px;
+      background: var(--panel);
+      border: 1px solid var(--line-2);
+      border-radius: 18px;
+      padding: 24px;
+      box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      margin: auto;
+      animation: popIn 0.25s cubic-bezier(.2, .8, .2, 1);
+    }
+    @keyframes popIn { from { opacity: 0; transform: translateY(10px) scale(0.98); } to { opacity: 1; transform: none; } }
+    .modal h2 { font-size: 22px; font-weight: 850; letter-spacing: -0.01em; }
+    .modal p { font-size: 14px; color: #cbd5e1; line-height: 1.5; }
+    .modal-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .modal-actions { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+
+    /* Menu */
+    .menu { max-width: 860px; gap: 22px; padding: 30px; }
+    .menu-hero { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+    .menu-logo { width: 64px; height: 64px; filter: drop-shadow(0 8px 20px rgba(249, 115, 22, 0.35)); }
+    .menu-title {
+      font-size: clamp(34px, 6vw, 54px);
+      font-weight: 950;
+      letter-spacing: 0.12em;
+      line-height: 1;
+      background: linear-gradient(90deg, #60a5fa, #f8fafc 45%, #fb923c);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    .menu-sub { color: var(--muted); font-size: 14px; }
+
+    .field { display: flex; flex-direction: column; gap: 6px; }
+    .field label { font-size: 11px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+    .input {
+      width: 100%;
+      background: #0f131c;
+      border: 1.5px solid var(--line-2);
+      border-radius: 11px;
+      padding: 11px 13px;
+      color: var(--text);
+      font-size: 15px;
+      font-weight: 600;
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+      user-select: text;
+    }
+    .input:focus { border-color: var(--police); box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25); }
+    .input.code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 20px;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      text-align: center;
+    }
+    .name-row { max-width: 340px; width: 100%; margin: 0 auto; }
+
+    .menu-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+    .mode-card {
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .mode-card h3 { font-size: 16px; font-weight: 850; display: flex; align-items: center; gap: 8px; }
+    .mode-card p { font-size: 13px; color: var(--muted); line-height: 1.45; flex: 1; }
+    .mode-card .ico {
+      width: 34px; height: 34px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; font-size: 18px;
+    }
+    .ico.local { background: rgba(20, 184, 166, 0.15); }
+    .ico.host { background: rgba(59, 130, 246, 0.18); }
+    .ico.join { background: rgba(249, 115, 22, 0.18); }
+
+    .menu-status { min-height: 20px; text-align: center; font-size: 13px; font-weight: 600; color: var(--muted); }
+    .menu-status.err { color: #fca5a5; }
+    .menu-foot { display: flex; justify-content: center; gap: 8px; }
+
+    .spinner {
+      width: 14px; height: 14px; border-radius: 50%;
+      border: 2px solid rgba(255, 255, 255, 0.25);
+      border-top-color: #fff;
+      animation: spin 0.8s linear infinite;
+      display: inline-block;
+      vertical-align: -2px;
+      margin-right: 6px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Lobby */
+    .lobby { max-width: 640px; }
+    .code-box {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      background: #0f131c;
+      border: 1.5px dashed var(--line-2);
+      border-radius: 14px;
+      padding: 14px 16px;
+    }
+    .code-box .lbl { font-size: 11px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+    .code-big {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 34px;
+      font-weight: 800;
+      letter-spacing: 0.24em;
+      color: var(--gold);
+      user-select: all;
+    }
+    .code-actions { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+
+    .seats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .seat {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      padding: 12px;
+      border-radius: 13px;
+      background: var(--panel-2);
+      border: 1.5px solid var(--line);
+      cursor: pointer;
+      text-align: left;
+      transition: border-color 0.15s, background 0.15s, transform 0.08s;
+    }
+    .seat:hover:not(:disabled) { border-color: #4b587a; }
+    .seat:active:not(:disabled) { transform: translateY(1px); }
+    .seat:disabled { cursor: default; }
+    .seat.mine.police { border-color: var(--police); background: #172036; }
+    .seat.mine.thief { border-color: var(--thief); background: #2a1c14; }
+    .seat .s-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .seat .s-role { font-size: 13px; font-weight: 800; }
+    .seat .s-owner { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .seat .s-owner.open { color: #86efac; }
+
+    .players-list { display: flex; flex-wrap: wrap; gap: 6px; }
+    .player-chip {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 5px 10px; border-radius: 99px;
+      background: var(--panel-2); border: 1px solid var(--line);
+      font-size: 12.5px; font-weight: 650;
+    }
+    .player-chip .online { width: 7px; height: 7px; border-radius: 50%; background: var(--green); }
+    .player-chip .online.off { background: #64748b; }
+    .player-chip .crown { font-size: 11px; }
+    .note { font-size: 12.5px; color: var(--muted); line-height: 1.45; }
+
+    /* Victory */
+    .victory { text-align: center; align-items: center; max-width: 460px; border-width: 2px; }
+    .victory.police { border-color: var(--police); box-shadow: 0 30px 80px rgba(37, 99, 235, 0.3); }
+    .victory.thief { border-color: var(--thief); box-shadow: 0 30px 80px rgba(249, 115, 22, 0.3); }
+    .victory-emoji { font-size: 54px; line-height: 1; animation: bounceIn 0.6s cubic-bezier(.2, 1.6, .4, 1); }
+    @keyframes bounceIn { from { transform: scale(0.3); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    .victory h2 { font-size: 30px; }
+    .victory.police h2 { color: #93c5fd; }
+    .victory.thief h2 { color: #fdba74; }
+
+    /* Rules */
+    .rules { max-width: 860px; }
+    .rules-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; user-select: text; }
     .rule-card {
-      background: #1a1e28;
-      border: 1px solid #2e3545;
-      border-radius: 10px;
-      padding: 12px 14px;
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 13px 15px;
       display: flex;
       flex-direction: column;
       gap: 7px;
     }
+    .rule-card h3 { font-size: 12.5px; font-weight: 850; color: var(--gold); text-transform: uppercase; letter-spacing: 0.06em; }
+    .rule-card p, .rule-card li { font-size: 13px; line-height: 1.5; color: #cbd5e1; }
+    .rule-card ul { padding-left: 16px; display: flex; flex-direction: column; gap: 4px; }
 
-    .rule-card h3 {
-      font-size: 13px;
-      font-weight: 800;
-      color: #facc15;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
+    /* ---------- Responsive ---------- */
+    @media (max-width: 1100px) {
+      .game { grid-template-columns: minmax(0, 1fr) 290px; gap: 12px; padding: 12px; }
+      .die { width: 74px; height: 74px; padding: 12px; }
     }
 
-    .rule-card p,
-    .rule-card li {
-      font-size: 12.5px;
-      line-height: 1.5;
-      color: #cbd5e1;
+    @media (max-width: 900px) {
+      .game { grid-template-columns: 1fr; }
+      svg#board { width: 100%; }
+      .sidebar { display: grid; grid-template-columns: 1fr 1fr; }
+      .turn-card { grid-column: 1 / -1; }
+      .log-card { grid-column: 1 / -1; }
+      .menu-grid { grid-template-columns: 1fr; }
+      .vault { max-width: none; }
+      .brand-text { display: none; }
     }
 
-    .rule-card ul {
-      padding-left: 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
+    @media (max-width: 600px) {
+      :root { --topbar-h: 56px; }
+      .topbar { gap: 10px; padding: 0 10px; }
+      .sidebar { grid-template-columns: 1fr; }
+      .top-actions .hide-sm { display: none; }
+      .match-chip code { font-size: 12px; }
+      .legend { display: none; }
+      .seats { grid-template-columns: 1fr; }
+      .code-big { font-size: 26px; }
+      .modal { padding: 18px; }
     }
   </style>
 </head>
 <body>
-  <div class="hud-bar">
-    <div class="hud-top-row">
-      <div class="hud-title-group">
-        <div class="hud-title">
-          <span>Hex Heist Prototype</span>
-          <span style="font-size: 11px; font-weight: 500; color: #94a3b8;">56 × 34 cm</span>
-        </div>
-        <div class="hud-subtitle" id="turn-instruction">Roll the dice (0, 1, 1, 2, 2, 3) to move the active figure</div>
-      </div>
-
-      <div class="vault-box">
-        <div class="vault-header">
-          <span>Thieves Stolen Goal</span>
-          <span class="vault-amount" id="vault-amount">$0 / $100,000</span>
-        </div>
-        <div class="vault-bar-bg">
-          <div class="vault-bar-fill" id="vault-bar-fill"></div>
-        </div>
-      </div>
-
-      <div class="turn-dice-box">
-        <div class="active-turn-badge police" id="active-turn-badge">POLICE • P1</div>
-        <div class="turn-order-pills" id="turn-pills"></div>
-        <div class="dice-face" id="dice-face" title="Dice faces: 0, 1, 1, 2, 2, 3">–</div>
-        <button class="btn btn-primary" id="btn-roll">Roll Dice</button>
-      </div>
-
-      <div class="hud-actions">
-        <button class="btn" id="btn-sandbox" title="Toggle free drag-and-drop sandbox mode">Sandbox: Off</button>
-        <button class="btn" id="btn-toggle-coords">Hide Coords</button>
-        <button class="btn btn-reset" id="btn-reset">Reset</button>
-      </div>
+  <!-- ============ Top bar ============ -->
+  <header class="topbar">
+    <div class="brand">
+      <svg viewBox="0 0 32 32" aria-hidden="true">
+        <polygon points="16,2 28,9 28,23 16,30 4,23 4,9" fill="#f97316" stroke="#3b82f6" stroke-width="3" stroke-linejoin="round" />
+        <text x="16" y="21" text-anchor="middle" font-size="13" font-weight="900" fill="#fff">$</text>
+      </svg>
+      <div class="brand-text">HEX HEIST<small id="mode-label">Main menu</small></div>
     </div>
 
-    <div class="hud-bottom-row">
-      <div class="hud-figures" id="hud-figures"></div>
-      <div class="status-log" id="status-log">P1's turn — Roll the dice!</div>
+    <div class="vault" title="Thieves win at $100,000">
+      <div class="vault-head">
+        <span>💰 Loot</span>
+        <span class="vault-amount" id="vault-amount">$0 / $100,000</span>
+      </div>
+      <div class="vault-track"><div class="vault-fill" id="vault-fill"></div></div>
+    </div>
+
+    <div class="top-actions">
+      <button class="match-chip" id="match-chip" title="Copy invite link">
+        <span class="net-dot" id="net-dot"></span>
+        <code id="match-chip-code">-----</code>
+      </button>
+      <button class="btn btn-ghost btn-icon hide-sm" id="btn-sandbox" title="Sandbox: drag figures freely (local only)">🧪</button>
+      <button class="btn btn-ghost btn-icon hide-sm" id="btn-toggle-coords" title="Show hex coordinates">#</button>
+      <button class="btn btn-ghost btn-icon" id="btn-rules" title="How to play">?</button>
+      <button class="btn btn-ghost btn-icon" id="btn-restart" title="Restart game">↻</button>
+      <button class="btn btn-icon" id="btn-menu" title="Leave to main menu">☰</button>
+    </div>
+  </header>
+
+  <!-- ============ Game ============ -->
+  <main class="game">
+    <section class="board-area" id="board-area">
+      <svg id="board" class="hide-coords" viewBox="0 0 1008 612" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <filter id="token-shadow" x="-35%" y="-35%" width="170%" height="170%">
+            <feDropShadow dx="0" dy="3.5" stdDeviation="3.2" flood-color="#000000" flood-opacity="0.6" />
+          </filter>
+          <filter id="special-shadow" x="-15%" y="-15%" width="130%" height="130%">
+            <feDropShadow dx="0" dy="1.5" stdDeviation="2" flood-color="#000000" flood-opacity="0.25" />
+          </filter>
+        </defs>
+        <!-- Board Base (56cm x 34cm @ 18px/cm = 1008 x 612) -->
+        <rect x="0" y="0" width="1008" height="612" rx="10" fill="#ebe5d8" stroke="#334155" stroke-width="4" />
+        <g id="layer-regular-hexes"></g>
+        <g id="layer-special-hexes"></g>
+        <g id="layer-walls"></g>
+        <g id="layer-reach"></g>
+        <g id="layer-tokens"></g>
+      </svg>
+
+      <div class="legend">
+        <div class="legend-item"><span class="swatch" style="background:#dc2626"></span> Heist</div>
+        <div class="legend-item"><span class="swatch" style="background:#374151"></span> Comandancia (Jail)</div>
+        <div class="legend-item"><span class="swatch" style="background:#f97316"></span> Thief start</div>
+        <div class="legend-item"><span class="swatch" style="background:#2563eb"></span> Police start</div>
+        <div class="legend-item"><span class="swatch" style="background:#22c55e"></span> Reachable</div>
+        <div class="legend-item"><span class="swatch" style="background:#111827; height:5px; width:18px; border-radius:2px"></span> Wall</div>
+      </div>
+    </section>
+
+    <aside class="sidebar">
+      <div class="card turn-card" id="turn-card">
+        <div class="turn-head">
+          <div class="fig-dot p1" id="turn-dot">P1</div>
+          <div class="who">
+            <div class="turn-team police" id="turn-team">Police</div>
+            <div class="turn-headline" id="turn-headline">P1's turn</div>
+          </div>
+        </div>
+        <div class="dice-row">
+          <div class="die" id="die" aria-live="polite"></div>
+          <div class="dice-side">
+            <div class="turn-hint" id="turn-hint">Roll the dice to move.</div>
+            <div class="dice-faces">Faces <b>0 · 1 · 1 · 2 · 2 · 3</b></div>
+          </div>
+        </div>
+        <button class="btn btn-primary btn-lg btn-block" id="btn-roll">🎲 Roll dice <span class="kbd">Space</span></button>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Turn order</div>
+        <div class="order" id="turn-order"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Crew</div>
+        <div class="figures" id="figures"></div>
+      </div>
+
+      <div class="card log-card">
+        <div class="card-title">Activity</div>
+        <ul class="log" id="log"></ul>
+      </div>
+    </aside>
+  </main>
+
+  <!-- ============ Main menu ============ -->
+  <div class="overlay show" id="menu-screen">
+    <div class="modal menu" role="dialog" aria-labelledby="menu-title">
+      <div class="menu-hero">
+        <svg class="menu-logo" viewBox="0 0 32 32" aria-hidden="true">
+          <polygon points="16,2 28,9 28,23 16,30 4,23 4,9" fill="#f97316" stroke="#3b82f6" stroke-width="2.5" stroke-linejoin="round" />
+          <text x="16" y="21" text-anchor="middle" font-size="13" font-weight="900" fill="#fff">$</text>
+        </svg>
+        <div class="menu-title" id="menu-title">HEX HEIST</div>
+        <div class="menu-sub">Cops vs. robbers on a hex board · 2–4 players</div>
+      </div>
+
+      <div class="field name-row">
+        <label for="name-input">Your name</label>
+        <input class="input" id="name-input" maxlength="16" placeholder="Enter a nickname" autocomplete="nickname" />
+      </div>
+
+      <div class="menu-grid">
+        <div class="mode-card">
+          <h3><span class="ico local">🪑</span> Local game</h3>
+          <p>Pass-and-play on this device. Everyone shares the screen and takes turns.</p>
+          <button class="btn btn-lg btn-block" id="btn-local">Play local</button>
+        </div>
+        <div class="mode-card">
+          <h3><span class="ico host">📡</span> Host online</h3>
+          <p>Create a match and share the 5-letter code with your friends.</p>
+          <button class="btn btn-primary btn-lg btn-block" id="btn-host">Create match</button>
+        </div>
+        <div class="mode-card">
+          <h3><span class="ico join">🔑</span> Join match</h3>
+          <input class="input code" id="code-input" maxlength="5" placeholder="CODE" autocomplete="off" spellcheck="false" />
+          <button class="btn btn-thief btn-lg btn-block" id="btn-join">Join</button>
+        </div>
+      </div>
+
+      <div class="menu-status" id="menu-status"></div>
+      <div class="menu-foot">
+        <button class="btn btn-ghost" id="btn-menu-rules">📜 How to play</button>
+        <button class="btn btn-ghost" id="btn-menu-resume" style="display:none">↩ Back to game</button>
+      </div>
     </div>
   </div>
 
-  <div class="board-wrapper">
-    <svg id="board" viewBox="0 0 1008 612" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <filter id="token-shadow" x="-35%" y="-35%" width="170%" height="170%">
-          <feDropShadow dx="0" dy="3.5" stdDeviation="3.2" flood-color="#000000" flood-opacity="0.6" />
-        </filter>
-        <filter id="special-shadow" x="-15%" y="-15%" width="130%" height="130%">
-          <feDropShadow dx="0" dy="1.5" stdDeviation="2" flood-color="#000000" flood-opacity="0.25" />
-        </filter>
-      </defs>
+  <!-- ============ Lobby ============ -->
+  <div class="overlay" id="lobby-screen">
+    <div class="modal lobby" role="dialog" aria-labelledby="lobby-title">
+      <div class="modal-head">
+        <h2 id="lobby-title">Match lobby</h2>
+        <button class="btn btn-ghost" id="btn-lobby-leave">Leave</button>
+      </div>
 
-      <!-- Board Base (56cm x 34cm @ 18px/cm = 1008 x 612) -->
-      <rect x="0" y="0" width="1008" height="612" rx="10" fill="#ebe5d8" stroke="#334155" stroke-width="4" />
+      <div class="code-box">
+        <div>
+          <div class="lbl">Match code</div>
+          <div class="code-big" id="lobby-code">-----</div>
+        </div>
+        <div class="code-actions">
+          <button class="btn" id="btn-copy-code">Copy code</button>
+          <button class="btn" id="btn-copy-link">Copy link</button>
+        </div>
+      </div>
 
-      <g id="layer-regular-hexes"></g>
-      <g id="layer-special-hexes"></g>
-      <g id="layer-walls"></g>
-      <g id="layer-tokens"></g>
-    </svg>
+      <div>
+        <div class="card-title">Players</div>
+        <div class="players-list" id="lobby-players"></div>
+      </div>
 
-    <div class="side-dice-panel turn-police" id="side-dice-panel">
-      <div class="side-dice-label">Dice Roll</div>
-      <div class="side-dice-big" id="side-dice-big">–</div>
-      <div class="side-dice-sub" id="side-dice-sub">Roll to move</div>
-      <button class="btn btn-primary" id="btn-roll-side" style="width: 100%;">Roll Dice</button>
-    </div>
+      <div>
+        <div class="card-title">Pick your figures</div>
+        <div class="seats" id="lobby-seats"></div>
+        <p class="note" style="margin-top:10px">Tap an open figure to take it, or tap yours to release it. You can take a figure from anyone holding two. Open figures are played by the host.</p>
+      </div>
 
-    <div class="victory-banner" id="victory-banner">
-      <div class="victory-card">
-        <h2 id="victory-title">Thieves Win!</h2>
-        <p id="victory-text">The thieves stole $100,000+ and reached their objective!</p>
-        <button class="btn btn-primary" id="btn-play-again">Play Again</button>
+      <div class="modal-actions">
+        <span class="note" id="lobby-wait" style="margin-right:auto; align-self:center"></span>
+        <button class="btn btn-gold btn-lg" id="btn-start">Start match</button>
       </div>
     </div>
   </div>
 
-  <div class="legend">
-    <div class="legend-item"><span class="swatch" style="background:#dc2626"></span> Heist Space (14)</div>
-    <div class="legend-item"><span class="swatch" style="background:#374151"></span> Comandancia (Jail)</div>
-    <div class="legend-item"><span class="swatch" style="background:#f97316"></span> Orange Corner (Thief Spawn)</div>
-    <div class="legend-item"><span class="swatch" style="background:#2563eb"></span> Blue Corner (Police Spawn)</div>
-    <div class="legend-item"><span class="swatch" style="background:#22c55e"></span> Reachable Hex</div>
-    <div class="legend-item"><span class="swatch" style="background:#111827; height:5px; width:18px; border-radius:2px"></span> Wall (Blocked)</div>
+  <!-- ============ Victory ============ -->
+  <div class="overlay" id="victory-screen">
+    <div class="modal victory" id="victory-card">
+      <div class="victory-emoji" id="victory-emoji">🏆</div>
+      <h2 id="victory-title">Thieves Win!</h2>
+      <p id="victory-text"></p>
+      <div class="modal-actions" style="justify-content:center">
+        <button class="btn" id="btn-victory-board">View board</button>
+        <button class="btn btn-ghost" id="btn-victory-menu">Main menu</button>
+        <button class="btn btn-gold btn-lg" id="btn-play-again">Play again</button>
+      </div>
+      <p class="note" id="victory-wait"></p>
+    </div>
   </div>
 
-  <section class="rules-section" aria-label="Reglas del Juego">
-    <div class="rules-header">📜 Reglas del Juego</div>
-    <div class="rules-grid">
-      <div class="rule-card">
-        <h3>Objetivo</h3>
-        <ul>
-          <li><strong>Policías:</strong> Tendrán que atrapar y encarcelar a los ladrones.</li>
-          <li><strong>Ladrones:</strong> Tendrán que asaltar los establecimientos cuyo monto varía hasta completar el botín.</li>
-        </ul>
-      </div>
+  <!-- ============ Alert ============ -->
+  <div class="overlay" id="alert-screen">
+    <div class="modal" style="max-width:420px">
+      <h2 id="alert-title">Notice</h2>
+      <p id="alert-text"></p>
+      <div class="modal-actions"><button class="btn btn-primary" id="btn-alert-ok">OK</button></div>
+    </div>
+  </div>
 
-      <div class="rule-card">
-        <h3>Puntuaciones</h3>
-        <ul>
-          <li>🏦 <strong>Banco:</strong> $20,000 (20k$)</li>
-          <li>💎 <strong>Joyerías:</strong> $15,000 (15k$)</li>
-          <li>🛒 <strong>Supermercados:</strong> $10,000 (10k$)</li>
-          <li>💊 <strong>Farmacias:</strong> $5,000 (5k$)</li>
-          <li>🏪 <strong>Oxxos:</strong> $3,000 (3k$)</li>
-        </ul>
+  <!-- ============ Rules ============ -->
+  <div class="overlay" id="rules-screen">
+    <div class="modal rules" role="dialog" aria-labelledby="rules-title">
+      <div class="modal-head">
+        <h2 id="rules-title">📜 Reglas del Juego</h2>
+        <button class="btn btn-ghost btn-icon" id="btn-rules-close" aria-label="Close">✕</button>
       </div>
-
-      <div class="rule-card">
-        <h3>Jugadores y Turnos</h3>
-        <p><strong>Jugadores:</strong> 2 a 4 jugadores por partida en dos equipos.</p>
-        <ul>
-          <li>Inicia el primer policía seguido de: <strong>Policía 1 → Ladrón 1 → Policía 2 → Ladrón 2</strong>.</li>
-          <li>El juego terminará si los <strong>dos ladrones terminan en la cárcel</strong> al mismo tiempo o si completan los <strong>$100,000 (100k)</strong> de botín.</li>
-        </ul>
-      </div>
-
-      <div class="rule-card">
-        <h3>Mecánicas</h3>
-        <ul>
-          <li>Los ladrones tendrán que realizar las tiradas buscando asaltar las casillas de robo evitando ser capturados.</li>
-          <li>Si un policía cae en una casilla donde se encuentra un ladrón, este será encarcelado y perderá un turno.</li>
-          <li>Si un ladrón completa <strong>3 arrestos</strong> quedará en cadena perpetua por el resto de la partida y se perderá el botín que había recolectado.</li>
-          <li>Si queda un ladrón y logra recolectar los <strong>$100,000</strong>, el equipo de los ladrones habrá ganado y los policías perderán la partida.</li>
-        </ul>
-      </div>
-
-      <div class="rule-card">
-        <h3>Reglas</h3>
-        <ul>
-          <li>Los jugadores no podrán avanzar de forma directa a una casilla si una pared está por delante.</li>
-        </ul>
+      <div class="rules-grid">
+        <div class="rule-card">
+          <h3>Objetivo</h3>
+          <ul>
+            <li><strong>Policías:</strong> Tendrán que atrapar y encarcelar a los ladrones.</li>
+            <li><strong>Ladrones:</strong> Tendrán que asaltar los establecimientos cuyo monto varía hasta completar el botín.</li>
+          </ul>
+        </div>
+        <div class="rule-card">
+          <h3>Puntuaciones</h3>
+          <ul>
+            <li>🏦 <strong>Banco:</strong> $20,000 (20k$)</li>
+            <li>💎 <strong>Joyerías:</strong> $15,000 (15k$)</li>
+            <li>🛒 <strong>Supermercados:</strong> $10,000 (10k$)</li>
+            <li>💊 <strong>Farmacias:</strong> $5,000 (5k$)</li>
+            <li>🏪 <strong>Oxxos:</strong> $3,000 (3k$)</li>
+          </ul>
+        </div>
+        <div class="rule-card">
+          <h3>Jugadores y Turnos</h3>
+          <p><strong>Jugadores:</strong> 2 a 4 jugadores por partida en dos equipos.</p>
+          <ul>
+            <li>Inicia el primer policía seguido de: <strong>Policía 1 → Ladrón 1 → Policía 2 → Ladrón 2</strong>.</li>
+            <li>El juego terminará si los <strong>dos ladrones terminan en la cárcel</strong> al mismo tiempo o si completan los <strong>$100,000 (100k)</strong> de botín.</li>
+          </ul>
+        </div>
+        <div class="rule-card">
+          <h3>Mecánicas</h3>
+          <ul>
+            <li>Los ladrones tendrán que realizar las tiradas buscando asaltar las casillas de robo evitando ser capturados.</li>
+            <li>Si un policía cae en una casilla donde se encuentra un ladrón, este será encarcelado y perderá un turno.</li>
+            <li>Si un ladrón completa <strong>3 arrestos</strong> quedará en cadena perpetua por el resto de la partida y se perderá el botín que había recolectado.</li>
+            <li>Si queda un ladrón y logra recolectar los <strong>$100,000</strong>, el equipo de los ladrones habrá ganado y los policías perderán la partida.</li>
+          </ul>
+        </div>
+        <div class="rule-card">
+          <h3>Reglas</h3>
+          <ul>
+            <li>Los jugadores no podrán avanzar de forma directa a una casilla si una pared está por delante.</li>
+            <li>Dado: <strong>0, 1, 1, 2, 2, 3</strong>. Mueve hasta ese número de casillas (las verdes).</li>
+          </ul>
+        </div>
+        <div class="rule-card">
+          <h3>Controles</h3>
+          <ul>
+            <li><span class="kbd">Space</span> / <span class="kbd">R</span> — tirar el dado.</li>
+            <li>Haz clic en una casilla verde para moverte.</li>
+            <li>🧪 Sandbox (solo local): arrastra figuras libremente.</li>
+          </ul>
+        </div>
       </div>
     </div>
-  </section>
+  </div>
 
+  <div class="toasts" id="toasts"></div>
   <div id="tooltip"></div>
 
   <script>
     (() => {
-      // --- 1. Board & Hex Geometry (1 cm = 18 px) ---
+      // =====================================================================
+      // 1. Board & Hex Geometry (1 cm = 18 px)
+      // =====================================================================
       const SCALE = 18;
-      const BOARD_W_CM = 56;
       const BOARD_H_CM = 34;
+      const BOARD_W_CM = 56;
       const HEX_W_CM = 5;
       const R_CM = HEX_W_CM / Math.sqrt(3);
       const DY_CM = 1.5 * R_CM;
-
       const GRID_H_CM = 6 * DY_CM + 2 * R_CM;
       const START_Y_CM = (BOARD_H_CM - GRID_H_CM) / 2 + R_CM;
       const MARGIN_X_CM = (BOARD_W_CM - 11 * HEX_W_CM) / 2;
-
       const ROW_COUNTS = [10, 11, 10, 11, 10, 11, 10];
       const R_PX = R_CM * SCALE;
 
-      // --- 2. Special Spaces & Heist Data ---
+      // =====================================================================
+      // 2. Special Spaces & Heist Data
+      // =====================================================================
       const COMANDANCIA_CELLS = new Set(["2,0", "3,0", "4,0"]);
       const COMANDANCIA_ADJACENT = ["1,0", "1,1", "2,1", "3,1", "4,1", "5,0", "5,1"];
 
@@ -982,29 +1093,29 @@
       };
 
       const HEISTS = {
-        "0,7":  { icon: "🏦", name: "Bank",    short: "BANK",    tier: "Major Heist",  amount: 20000, value: "$20,000", shortVal: "$20k", image: "bank.png" },
-        "2,4":  { icon: "🏦", name: "Bank",    short: "BANK",    tier: "Major Heist",  amount: 20000, value: "$20,000", shortVal: "$20k", image: "bank.png" },
-        "6,5":  { icon: "🏦", name: "Bank",    short: "BANK",    tier: "Major Heist",  amount: 20000, value: "$20,000", shortVal: "$20k", image: "bank.png" },
-        "1,2":  { icon: "💎", name: "Jewelry", short: "JEWELRY", tier: "Major Heist",  amount: 15000, value: "$15,000", shortVal: "$15k", image: "jewelry.png" },
-        "3,10": { icon: "💎", name: "Jewelry", short: "JEWELRY", tier: "Major Heist",  amount: 15000, value: "$15,000", shortVal: "$15k", image: "jewelry.png" },
-        "5,2":  { icon: "💎", name: "Jewelry", short: "JEWELRY", tier: "Major Heist",  amount: 15000, value: "$15,000", shortVal: "$15k", image: "jewelry.png" },
-        "3,3":  { icon: "🛒", name: "Market",  short: "MARKET",  tier: "Medium Heist", amount: 10000, value: "$10,000", shortVal: "$10k", image: "market.png" },
-        "6,7":  { icon: "🛒", name: "Market",  short: "MARKET",  tier: "Medium Heist", amount: 10000, value: "$10,000", shortVal: "$10k", image: "market.png" },
-        "0,5":  { icon: "💊", name: "Farmacia", short: "FARMACIA", tier: "Minor Heist",  amount: 5000,  value: "$5,000",  shortVal: "$5k", image: "similares.png" },
-        "3,8":  { icon: "💊", name: "Farmacia", short: "FARMACIA", tier: "Minor Heist",  amount: 5000,  value: "$5,000",  shortVal: "$5k", image: "similares.png" },
-        "5,4":  { icon: "💊", name: "Farmacia", short: "FARMACIA", tier: "Minor Heist",  amount: 5000,  value: "$5,000",  shortVal: "$5k", image: "similares.png" },
-        "0,3":  { icon: "🏪", name: "Oxxo",    short: "OXXO",    tier: "Minor Heist",  amount: 3000,  value: "$3,000",  shortVal: "$3k", image: "oxxo.png" },
-        "3,6":  { icon: "🏪", name: "Oxxo",    short: "OXXO",    tier: "Minor Heist",  amount: 3000,  value: "$3,000",  shortVal: "$3k", image: "oxxo.png" },
-        "5,9":  { icon: "🏪", name: "Oxxo",    short: "OXXO",    tier: "Minor Heist",  amount: 3000,  value: "$3,000",  shortVal: "$3k", image: "oxxo.png" }
+        "0,7":  { icon: "🏦", name: "Bank",     short: "BANK",     tier: "Major Heist",  amount: 20000, value: "$20,000", shortVal: "$20k", image: "bank.png" },
+        "2,4":  { icon: "🏦", name: "Bank",     short: "BANK",     tier: "Major Heist",  amount: 20000, value: "$20,000", shortVal: "$20k", image: "bank.png" },
+        "6,5":  { icon: "🏦", name: "Bank",     short: "BANK",     tier: "Major Heist",  amount: 20000, value: "$20,000", shortVal: "$20k", image: "bank.png" },
+        "1,2":  { icon: "💎", name: "Jewelry",  short: "JEWELRY",  tier: "Major Heist",  amount: 15000, value: "$15,000", shortVal: "$15k", image: "jewelry.png" },
+        "3,10": { icon: "💎", name: "Jewelry",  short: "JEWELRY",  tier: "Major Heist",  amount: 15000, value: "$15,000", shortVal: "$15k", image: "jewelry.png" },
+        "5,2":  { icon: "💎", name: "Jewelry",  short: "JEWELRY",  tier: "Major Heist",  amount: 15000, value: "$15,000", shortVal: "$15k", image: "jewelry.png" },
+        "3,3":  { icon: "🛒", name: "Market",   short: "MARKET",   tier: "Medium Heist", amount: 10000, value: "$10,000", shortVal: "$10k", image: "market.png" },
+        "6,7":  { icon: "🛒", name: "Market",   short: "MARKET",   tier: "Medium Heist", amount: 10000, value: "$10,000", shortVal: "$10k", image: "market.png" },
+        "0,5":  { icon: "💊", name: "Farmacia", short: "FARMACIA", tier: "Minor Heist",  amount: 5000,  value: "$5,000",  shortVal: "$5k",  image: "similares.png" },
+        "3,8":  { icon: "💊", name: "Farmacia", short: "FARMACIA", tier: "Minor Heist",  amount: 5000,  value: "$5,000",  shortVal: "$5k",  image: "similares.png" },
+        "5,4":  { icon: "💊", name: "Farmacia", short: "FARMACIA", tier: "Minor Heist",  amount: 5000,  value: "$5,000",  shortVal: "$5k",  image: "similares.png" },
+        "0,3":  { icon: "🏪", name: "Oxxo",     short: "OXXO",     tier: "Minor Heist",  amount: 3000,  value: "$3,000",  shortVal: "$3k",  image: "oxxo.png" },
+        "3,6":  { icon: "🏪", name: "Oxxo",     short: "OXXO",     tier: "Minor Heist",  amount: 3000,  value: "$3,000",  shortVal: "$3k",  image: "oxxo.png" },
+        "5,9":  { icon: "🏪", name: "Oxxo",     short: "OXXO",     tier: "Minor Heist",  amount: 3000,  value: "$3,000",  shortVal: "$3k",  image: "oxxo.png" }
       };
 
       const DICE_FACES = [0, 1, 1, 2, 2, 3];
       const TURN_ORDER = ["P1", "T1", "P2", "T2"];
       const GOAL_AMOUNT = 100000;
+      const ROLE_OF = { P1: "police", P2: "police", T1: "thief", T2: "thief" };
 
       function hexCenter(row, col) {
-        const isOddCountRow = ROW_COUNTS[row] === 10;
-        const xOffset = isOddCountRow ? 1.0 : 0.5;
+        const xOffset = ROW_COUNTS[row] === 10 ? 1.0 : 0.5;
         const cxCm = MARGIN_X_CM + (col + xOffset) * HEX_W_CM;
         const cyCm = START_Y_CM + row * DY_CM;
         return { cx: cxCm * SCALE, cy: cyCm * SCALE };
@@ -1014,10 +1125,7 @@
         const pts = [];
         for (let i = 0; i < 6; i++) {
           const angle = (-90 + i * 60) * (Math.PI / 180);
-          pts.push({
-            x: cx + radius * Math.cos(angle),
-            y: cy + radius * Math.sin(angle)
-          });
+          pts.push({ x: cx + radius * Math.cos(angle), y: cy + radius * Math.sin(angle) });
         }
         return pts;
       }
@@ -1026,7 +1134,6 @@
         return pts.map(p => `${p.x.toFixed(2)},${p.y.toFixed(2)}`).join(" ");
       }
 
-      // Build cell map
       const cells = new Map();
       for (let r = 0; r < ROW_COUNTS.length; r++) {
         for (let c = 0; c < ROW_COUNTS[r]; c++) {
@@ -1036,57 +1143,25 @@
         }
       }
 
-      // Hard-coded balanced wall layout (found by simulation: ~50% thief / ~50% police win rate
-      // with repeatable heists, 3-strike capture rule and "both thieves jailed = police win").
+      // Balanced wall layout (found by simulation: ~50% thief / ~50% police win rate).
       const BALANCED_WALLS = [
-        "0,1|0,2",
-        "0,2|0,3",
-        "0,8|0,9",
-        "0,8|1,9",
-        "1,1|1,2",
-        "1,3|1,4",
-        "1,5|2,5",
-        "1,6|1,7",
-        "1,8|1,9",
-        "1,8|2,7",
-        "1,8|2,8",
-        "2,1|2,2",
-        "2,4|3,4",
-        "2,5|3,5",
-        "3,10|4,9",
-        "3,2|4,2",
-        "3,4|4,4",
-        "3,7|3,8",
-        "4,1|4,2",
-        "4,1|5,2",
-        "4,2|5,3",
-        "4,4|4,5",
-        "4,7|5,8",
-        "4,8|5,8",
-        "4,8|5,9",
-        "4,9|5,10",
-        "5,1|5,2",
-        "5,1|6,1",
-        "5,6|5,7",
-        "6,0|6,1"
+        "0,1|0,2", "0,2|0,3", "0,8|0,9", "0,8|1,9", "1,1|1,2", "1,3|1,4", "1,5|2,5", "1,6|1,7",
+        "1,8|1,9", "1,8|2,7", "1,8|2,8", "2,1|2,2", "2,4|3,4", "2,5|3,5", "3,10|4,9", "3,2|4,2",
+        "3,4|4,4", "3,7|3,8", "4,1|4,2", "4,1|5,2", "4,2|5,3", "4,4|4,5", "4,7|5,8", "4,8|5,8",
+        "4,8|5,9", "4,9|5,10", "5,1|5,2", "5,1|6,1", "5,6|5,7", "6,0|6,1"
       ];
-      let walls = new Set(BALANCED_WALLS);
+      const walls = new Set(BALANCED_WALLS);
 
       function edgeKey(a, b) {
         return a < b ? `${a}|${b}` : `${b}|${a}`;
       }
 
-      // Hex neighbors helper (handling Comandancia as a single logical node and walls)
       function getNeighbors(spaceId, allowComandanciaEntry) {
-        if (spaceId === "comandancia") {
-          return [...COMANDANCIA_ADJACENT];
-        }
+        if (spaceId === "comandancia") return [...COMANDANCIA_ADJACENT];
         const [r, c] = spaceId.split(",").map(Number);
-        const isEven = (r % 2 === 0);
-        const deltas = isEven
+        const deltas = (r % 2 === 0)
           ? [[0, -1], [0, 1], [-1, 0], [-1, 1], [1, 0], [1, 1]]
           : [[0, -1], [0, 1], [-1, -1], [-1, 0], [1, -1], [1, 0]];
-
         const result = new Set();
         for (const [dr, dc] of deltas) {
           const nr = r + dr;
@@ -1095,176 +1170,31 @@
           const nKey = `${nr},${nc}`;
           if (COMANDANCIA_CELLS.has(nKey)) {
             if (allowComandanciaEntry) result.add("comandancia");
-          } else {
-            if (!walls.has(edgeKey(spaceId, nKey))) {
-              result.add(nKey);
-            }
+          } else if (!walls.has(edgeKey(spaceId, nKey))) {
+            result.add(nKey);
           }
         }
         return [...result];
       }
 
-      function isBoardConnected() {
-        const start = "0,0";
-        const visited = new Set([start]);
-        const queue = [start];
-        while (queue.length > 0) {
-          const curr = queue.shift();
-          for (const nb of getNeighbors(curr, false)) {
-            if (!visited.has(nb)) {
-              visited.add(nb);
-              queue.push(nb);
-            }
-          }
-        }
-        return visited.size === (cells.size - COMANDANCIA_CELLS.size);
-      }
-
-      function getClockwiseNeighborEdges(cellKey) {
-        const [r, c] = cellKey.split(",").map(Number);
-        const isEven = (r % 2 === 0);
-        // Clockwise order around pointy-top hex: TR, R, BR, BL, L, TL
-        const deltas = isEven
-          ? [[-1, 1], [0, 1], [1, 1], [1, 0], [0, -1], [-1, 0]]
-          : [[-1, 0], [0, 1], [1, 0], [1, -1], [0, -1], [-1, -1]];
-
-        const edges = [];
-        deltas.forEach(([dr, dc], dirIdx) => {
-          const nr = r + dr;
-          const nc = c + dc;
-          if (nr < 0 || nr >= ROW_COUNTS.length || nc < 0 || nc >= ROW_COUNTS[nr]) return;
-          const nKey = `${nr},${nc}`;
-          if (COMANDANCIA_CELLS.has(nKey)) return;
-          edges.push({ dirIdx, ek: edgeKey(cellKey, nKey) });
-        });
-        return edges;
-      }
-
-      function shuffleArray(arr) {
-        for (let i = arr.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [arr[i], arr[j]] = [arr[j], arr[i]];
-        }
-        return arr;
-      }
-
-      function placeSeparatedWallsFor(cellKey, requiredCount) {
-        const edges = getClockwiseNeighborEdges(cellKey);
-        const existing = edges.filter(e => walls.has(e.ek));
-        const needed = requiredCount - existing.length;
-        if (needed <= 0) return;
-
-        const available = edges.filter(e => !walls.has(e.ek));
-        // Generate all combinations of size `needed` from `available`
-        const combos = [];
-        function buildCombos(start, chosen) {
-          if (chosen.length === needed) {
-            combos.push([...chosen]);
-            return;
-          }
-          for (let i = start; i < available.length; i++) {
-            chosen.push(available[i]);
-            buildCombos(i + 1, chosen);
-            chosen.pop();
-          }
-        }
-        buildCombos(0, []);
-
-        // Score each combo by minimum circular distance between all chosen+existing dirIdx
-        const scored = combos.map(combo => {
-          const dirs = [...existing, ...combo].map(e => e.dirIdx).sort((a, b) => a - b);
-          let minGap = 6;
-          for (let i = 0; i < dirs.length; i++) {
-            const next = dirs[(i + 1) % dirs.length];
-            const gap = (next - dirs[i] + 6) % 6;
-            if (gap < minGap) minGap = gap;
-          }
-          return { combo, minGap };
-        });
-
-        // Sort by highest separation first, shuffling ties
-        shuffleArray(scored);
-        scored.sort((a, b) => b.minGap - a.minGap);
-
-        for (const { combo } of scored) {
-          for (const e of combo) walls.add(e.ek);
-          if (isBoardConnected()) return;
-          for (const e of combo) walls.delete(e.ek);
-        }
-      }
-
-      function generateRandomWalls(targetCount = 34) {
-        walls = new Set();
-
-        // 1. Place 3 separated barriers on Banks, 2 on Jewelry, and at least 1 on Markets & Bakeries
-        const protectedSpots = new Set();
-        const banks = [];
-        const jewelries = [];
-        const marketsAndBakeries = [];
-        for (const [key, h] of Object.entries(HEISTS)) {
-          if (h.name === "Bank") {
-            banks.push(key);
-            protectedSpots.add(key);
-          } else if (h.name === "Jewelry") {
-            jewelries.push(key);
-            protectedSpots.add(key);
-          } else if (h.name === "Market" || h.name === "Farmacia") {
-            marketsAndBakeries.push(key);
-          }
-        }
-
-        for (const b of banks) placeSeparatedWallsFor(b, 3);
-        for (const j of jewelries) placeSeparatedWallsFor(j, 2);
-        for (const mb of marketsAndBakeries) placeSeparatedWallsFor(mb, 1);
-
-        // 2. Fill remaining random walls elsewhere (without adding extra walls to Banks/Jewelry)
-        const candidates = [];
-        const seen = new Set();
-
-        for (const cell of cells.values()) {
-          if (COMANDANCIA_CELLS.has(cell.key) || protectedSpots.has(cell.key)) continue;
-          const edges = getClockwiseNeighborEdges(cell.key);
-          for (const { ek } of edges) {
-            const [a, b] = ek.split("|");
-            if (protectedSpots.has(a) || protectedSpots.has(b)) continue;
-            if (!seen.has(ek) && !walls.has(ek)) {
-              seen.add(ek);
-              candidates.push(ek);
-            }
-          }
-        }
-
-        shuffleArray(candidates);
-
-        for (const ek of candidates) {
-          if (walls.size >= targetCount) break;
-          walls.add(ek);
-          if (!isBoardConnected()) {
-            walls.delete(ek);
-          }
-        }
-      }
-
       // BFS for all spaces reachable in 1..steps
       function getReachableSpaces(startSpace, steps) {
-        if (steps <= 0) return new Set();
-        const allowComandanciaEntry = false;
+        if (!steps || steps <= 0) return new Set();
         const visited = new Set([startSpace]);
         const reachable = new Set();
         let frontier = [startSpace];
-
         for (let d = 1; d <= steps; d++) {
-          const nextFrontier = [];
+          const next = [];
           for (const curr of frontier) {
-            for (const nb of getNeighbors(curr, allowComandanciaEntry)) {
+            for (const nb of getNeighbors(curr, false)) {
               if (!visited.has(nb)) {
                 visited.add(nb);
                 reachable.add(nb);
-                nextFrontier.push(nb);
+                next.push(nb);
               }
             }
           }
-          frontier = nextFrontier;
+          frontier = next;
         }
         return reachable;
       }
@@ -1277,61 +1207,35 @@
         cy: (c20.cy + c30.cy + c40.cy) / 3
       };
 
-      // --- 3. SVG Rendering ---
-      const svg = document.getElementById("board");
-      const regularLayer = document.getElementById("layer-regular-hexes");
-      const specialLayer = document.getElementById("layer-special-hexes");
-      const wallLayer = document.getElementById("layer-walls");
-      const tokenLayer = document.getElementById("layer-tokens");
-      const tooltip = document.getElementById("tooltip");
-
+      // =====================================================================
+      // 3. SVG Rendering (static board)
+      // =====================================================================
+      const $ = (id) => document.getElementById(id);
+      const svg = $("board");
+      const regularLayer = $("layer-regular-hexes");
+      const specialLayer = $("layer-special-hexes");
+      const wallLayer = $("layer-walls");
+      const reachLayer = $("layer-reach");
+      const tokenLayer = $("layer-tokens");
+      const tooltip = $("tooltip");
+      const svgDefs = svg.querySelector("defs");
       const svgNS = "http://www.w3.org/2000/svg";
+
       function el(tag, attrs = {}, parent = null) {
         const node = document.createElementNS(svgNS, tag);
-        for (const [k, v] of Object.entries(attrs)) {
-          node.setAttribute(k, v);
-        }
+        for (const [k, v] of Object.entries(attrs)) node.setAttribute(k, v);
         if (parent) parent.appendChild(node);
         return node;
       }
 
       const spaceElements = new Map();
-      const svgDefs = svg.querySelector("defs");
 
-      function createImagePattern(id, href, x, y, width, height, fallbackFill, tint = "rgba(15, 23, 42, 0.38)") {
-        const pat = el("pattern", {
-          id,
-          patternUnits: "userSpaceOnUse",
-          x,
-          y,
-          width,
-          height
-        }, svgDefs);
+      function createImagePattern(id, href, x, y, width, height, fallbackFill, tint = "rgba(15, 23, 42, 0.38)", align = "xMidYMid") {
+        const pat = el("pattern", { id, patternUnits: "userSpaceOnUse", x, y, width, height }, svgDefs);
         el("rect", { x: 0, y: 0, width, height, fill: fallbackFill }, pat);
-        el("image", {
-          href,
-          x: 0,
-          y: 0,
-          width,
-          height,
-          preserveAspectRatio: "xMidYMid slice"
-        }, pat);
-        if (tint) {
-          el("rect", { x: 0, y: 0, width, height, fill: tint }, pat);
-        }
+        el("image", { href, x: 0, y: 0, width, height, preserveAspectRatio: `${align} slice` }, pat);
+        if (tint) el("rect", { x: 0, y: 0, width, height, fill: tint }, pat);
         return `url(#${id})`;
-      }
-
-      function attachHoverTooltip(element, getHtml) {
-        element.addEventListener("mouseenter", (e) => {
-          tooltip.innerHTML = getHtml();
-          tooltip.style.display = "block";
-          moveTooltip(e);
-        });
-        element.addEventListener("mousemove", moveTooltip);
-        element.addEventListener("mouseleave", () => {
-          tooltip.style.display = "none";
-        });
       }
 
       function moveTooltip(e) {
@@ -1345,10 +1249,19 @@
         tooltip.style.top = `${top}px`;
       }
 
-      // Render Regular & Heist Hexes
+      function attachHoverTooltip(element, getHtml) {
+        element.addEventListener("mouseenter", (e) => {
+          tooltip.innerHTML = getHtml();
+          tooltip.style.display = "block";
+          moveTooltip(e);
+        });
+        element.addEventListener("mousemove", moveTooltip);
+        element.addEventListener("mouseleave", () => { tooltip.style.display = "none"; });
+      }
+
+      // Regular & heist hexes
       for (const cell of cells.values()) {
         if (COMANDANCIA_CELLS.has(cell.key) || CORNERS[cell.key]) continue;
-
         const heist = HEISTS[cell.key];
         const pts = hexVertices(cell.cx, cell.cy, R_PX);
         const g = el("g", {}, regularLayer);
@@ -1356,16 +1269,9 @@
         let fillValue = "#e5dfd2";
         if (heist && heist.image) {
           const hexW = Math.sqrt(3) * R_PX;
-          const hexH = 2 * R_PX;
-          const patId = `node-bg-${cell.row}-${cell.col}`;
           fillValue = createImagePattern(
-            patId,
-            heist.image,
-            cell.cx - hexW / 2,
-            cell.cy - R_PX,
-            hexW,
-            hexH,
-            "#dc2626"
+            `node-bg-${cell.row}-${cell.col}`, heist.image,
+            cell.cx - hexW / 2, cell.cy - R_PX, hexW, 2 * R_PX, "#dc2626"
           );
         }
 
@@ -1377,39 +1283,28 @@
           class: "hex-shape",
           "data-space": cell.key
         }, g);
-
         spaceElements.set(cell.key, poly);
 
         if (heist) {
-          el("text", {
-            x: cell.cx, y: cell.cy - 13,
-            "text-anchor": "middle", "font-size": "16", "pointer-events": "none"
-          }, g).textContent = heist.icon;
+          el("text", { x: cell.cx, y: cell.cy - 13, "text-anchor": "middle", "font-size": "16", "pointer-events": "none" }, g).textContent = heist.icon;
           el("text", { x: cell.cx, y: cell.cy + 2, class: "hex-label-title" }, g).textContent = heist.short;
           el("text", { x: cell.cx, y: cell.cy + 14, class: "hex-label-sub" }, g).textContent = heist.shortVal;
-          el("text", {
-            x: cell.cx, y: cell.cy + 29, class: "hex-coord",
-            style: "fill: rgba(255,255,255,0.72);"
-          }, g).textContent = `(${cell.row},${cell.col})`;
-
+          el("text", { x: cell.cx, y: cell.cy + 29, class: "hex-coord", style: "fill: rgba(255,255,255,0.72);" }, g).textContent = `(${cell.row},${cell.col})`;
           attachHoverTooltip(poly, () => `
             <div class="tt-title">${heist.icon} ${heist.name}</div>
             <div class="tt-tier">${heist.tier} — ${heist.value}</div>
-            <div class="tt-coord">Hex (${cell.row}, ${cell.col})</div>
-          `);
+            <div class="tt-coord">Hex (${cell.row}, ${cell.col})</div>`);
         } else {
           el("text", { x: cell.cx, y: cell.cy + 3, class: "hex-coord" }, g).textContent = `${cell.row},${cell.col}`;
         }
-
         poly.addEventListener("click", () => handleSpaceClick(cell.key));
       }
 
-      // Render Comandancia
+      // Comandancia (three merged hexes)
       (() => {
         const v20 = hexVertices(c20.cx, c20.cy, R_PX);
         const v30 = hexVertices(c30.cx, c30.cy, R_PX);
         const v40 = hexVertices(c40.cx, c40.cy, R_PX);
-
         const outerPts = [
           v20[0], v20[1], v20[2], v20[3],
           v30[2],
@@ -1417,24 +1312,15 @@
           v30[4], v30[5], v30[0],
           v20[5]
         ];
-
-        const xs = outerPts.map((p) => p[0]);
-        const ys = outerPts.map((p) => p[1]);
+        const xs = outerPts.map(p => p.x);
+        const ys = outerPts.map(p => p.y);
         const minX = Math.min(...xs);
         const minY = Math.min(...ys);
-        const comW = Math.max(...xs) - minX;
-        const comH = Math.max(...ys) - minY;
         const comFill = createImagePattern(
-          "node-bg-comandancia",
-          "comandancia.png",
-          minX,
-          minY,
-          comW,
-          comH,
-          "#374151",
-          "rgba(15, 23, 42, 0.42)"
+          "node-bg-comandancia", "comandancia.png",
+          minX, minY, Math.max(...xs) - minX, Math.max(...ys) - minY,
+          "#374151", "rgba(15, 23, 42, 0.42)", "xMaxYMid"
         );
-
         const g = el("g", { filter: "url(#special-shadow)" }, specialLayer);
         const poly = el("polygon", {
           points: pointsToAttr(outerPts),
@@ -1445,55 +1331,103 @@
           class: "hex-shape",
           "data-space": "comandancia"
         }, g);
-
         spaceElements.set("comandancia", poly);
-
         el("text", { x: COMANDANCIA_CENTER.cx, y: COMANDANCIA_CENTER.cy - 4, class: "comandancia-label" }, g).textContent = "COMANDANCIA";
-        el("text", { x: COMANDANCIA_CENTER.cx, y: COMANDANCIA_CENTER.cy + 11, class: "comandancia-sub" }, g).textContent = "JAIL • (2,0)(3,0)(4,0)";
-
+        el("text", { x: COMANDANCIA_CENTER.cx, y: COMANDANCIA_CENTER.cy + 11, class: "comandancia-sub" }, g).textContent = "JAIL";
         attachHoverTooltip(poly, () => `
-          <div class="tt-title">Comandancia (Jail)</div>
-          <div>Police Base &amp; Thief Prison (1 turn)</div>
-          <div class="tt-coord">Merged Hexes (2,0), (3,0), (4,0)</div>
-        `);
-
+          <div class="tt-title">🚓 Comandancia (Jail)</div>
+          <div>Captured thieves sit out 1 turn here</div>
+          <div class="tt-coord">Merged Hexes (2,0), (3,0), (4,0)</div>`);
         poly.addEventListener("click", () => handleSpaceClick("comandancia"));
       })();
 
-      // Render 4 Corner Special Spaces (~15% larger)
+      // Corner spawn hexes (~15% larger)
       for (const [key, corner] of Object.entries(CORNERS)) {
         const cell = cells.get(key);
-        const pts = hexVertices(cell.cx, cell.cy, R_PX * 1.15);
         const g = el("g", { filter: "url(#special-shadow)" }, specialLayer);
-
         const poly = el("polygon", {
-          points: pointsToAttr(pts),
+          points: pointsToAttr(hexVertices(cell.cx, cell.cy, R_PX * 1.15)),
           fill: corner.fill,
           stroke: corner.stroke,
           "stroke-width": "2.5",
           class: "hex-shape",
           "data-space": key
         }, g);
-
         spaceElements.set(key, poly);
-
         el("text", { x: cell.cx, y: cell.cy - 3, class: "hex-label-title" }, g).textContent = corner.label;
         el("text", { x: cell.cx, y: cell.cy + 11, class: "hex-label-sub" }, g).textContent = corner.sub;
-        el("text", {
-          x: cell.cx, y: cell.cy + 30, class: "hex-coord",
-          style: "fill: rgba(255,255,255,0.8);"
-        }, g).textContent = `(${cell.row},${cell.col})`;
-
+        el("text", { x: cell.cx, y: cell.cy + 30, class: "hex-coord", style: "fill: rgba(255,255,255,0.8);" }, g).textContent = `(${cell.row},${cell.col})`;
         attachHoverTooltip(poly, () => `
           <div class="tt-title">${corner.color === "orange" ? "Orange Corner" : "Blue Corner"}</div>
           <div>${corner.color === "orange" ? "Thief Starting Space" : "Police Starting Space"}</div>
-          <div class="tt-coord">Hex (${cell.row}, ${cell.col})</div>
-        `);
-
+          <div class="tt-coord">Hex (${cell.row}, ${cell.col})</div>`);
         poly.addEventListener("click", () => handleSpaceClick(key));
       }
 
-      // --- 4. Game State & Logic ---
+      // Walls
+      for (const ek of walls) {
+        const [aKey, bKey] = ek.split("|");
+        const a = cells.get(aKey);
+        const b = cells.get(bKey);
+        if (!a || !b) continue;
+        const mx = (a.cx + b.cx) / 2;
+        const my = (a.cy + b.cy) / 2;
+        const dx = b.cx - a.cx;
+        const dy = b.cy - a.cy;
+        const len = Math.hypot(dx, dy);
+        const px = -dy / len;
+        const py = dx / len;
+        const half = R_PX * 0.5;
+        const coords = {
+          x1: (mx - px * half).toFixed(2), y1: (my - py * half).toFixed(2),
+          x2: (mx + px * half).toFixed(2), y2: (my + py * half).toFixed(2)
+        };
+        el("line", { ...coords, stroke: "#f8fafc", "stroke-width": "9", "stroke-linecap": "round", opacity: "0.75", "pointer-events": "none" }, wallLayer);
+        el("line", { ...coords, stroke: "#111827", "stroke-width": "5.5", "stroke-linecap": "round", "pointer-events": "none" }, wallLayer);
+      }
+
+      // =====================================================================
+      // 4. Utilities
+      // =====================================================================
+      const store = {
+        get(area, k, d) { try { return window[area].getItem(k) ?? d; } catch { return d; } },
+        set(area, k, v) { try { window[area].setItem(k, v); } catch { /* ignore */ } }
+      };
+
+      function randomId(len = 16) {
+        if (window.crypto && crypto.getRandomValues) {
+          const arr = new Uint8Array(len);
+          crypto.getRandomValues(arr);
+          return [...arr].map(b => (b % 36).toString(36)).join("");
+        }
+        return Array.from({ length: len }, () => Math.floor(Math.random() * 36).toString(36)).join("");
+      }
+
+      function esc(s) {
+        return String(s).replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
+      }
+
+      function cleanName(n) {
+        return String(n || "").replace(/[\u0000-\u001f<>]/g, "").trim().slice(0, 16) || "Player";
+      }
+
+      const money = (n) => `$${Number(n).toLocaleString("en-US")}`;
+
+      // Per-tab client id (sessionStorage so two tabs = two players; survives reload for rejoin).
+      let myId = store.get("sessionStorage", "hh-client-id", null);
+      if (!myId) {
+        myId = randomId(12);
+        store.set("sessionStorage", "hh-client-id", myId);
+      }
+
+      const nameInput = $("name-input");
+      nameInput.value = store.get("localStorage", "hh-name", "") || `Player-${randomId(3).toUpperCase()}`;
+      nameInput.addEventListener("input", () => store.set("localStorage", "hh-name", nameInput.value));
+      const myName = () => cleanName(nameInput.value);
+
+      // =====================================================================
+      // 5. Game State (serializable — the host broadcasts this whole object)
+      // =====================================================================
       const INITIAL_FIGURES = [
         { id: "P1", role: "police", space: "6,0", jailedTurns: 0, captures: 0, stolen: 0, permanentlyJailed: false },
         { id: "P2", role: "police", space: "6,9", jailedTurns: 0, captures: 0, stolen: 0, permanentlyJailed: false },
@@ -1501,399 +1435,668 @@
         { id: "T2", role: "thief",  space: "0,9", jailedTurns: 0, captures: 0, stolen: 0, permanentlyJailed: false }
       ];
 
-      let figures = [];
-      let turnIndex = 0;
-      let currentRoll = null;
-      let reachableSpaces = new Set();
-      let gameOver = false;
+      function freshGame() {
+        return {
+          id: randomId(8),
+          figures: INITIAL_FIGURES.map(f => ({ ...f })),
+          turnIndex: 0,
+          currentRoll: null,
+          rollSeq: 0,
+          gameOver: false,
+          winner: null,
+          log: [],
+          logSeq: 0
+        };
+      }
+
+      function freshState() {
+        return {
+          phase: "lobby",
+          code: null,
+          players: [],
+          seats: { P1: null, T1: null, P2: null, T2: null },
+          game: freshGame()
+        };
+      }
+
+      let state = freshState();
+
+      // Session / network (never sent over the wire)
+      const net = {
+        mode: "menu",     // "menu" | "local" | "host" | "guest"
+        code: null,
+        peer: null,
+        conns: new Map(), // host: clientId -> DataConnection
+        hostConn: null,   // guest: DataConnection to host
+        joinTimer: null,
+        connected: true
+      };
+      const isOnline = () => net.mode === "host" || net.mode === "guest";
+      const isAuthority = () => net.mode === "local" || net.mode === "host";
+      const MAX_PLAYERS = 4;
+
+      // Local UI state
       let sandboxMode = false;
       let sandboxSelectedId = null;
-      let dragState = null;
+      let rollAnimUntil = 0;
+      let victoryDismissed = false;
+      let tracker = { gameId: null, rollSeq: 0, logSeq: 0, myTurn: false };
 
-      function getTotalStolen() {
-        return figures.reduce((sum, f) => sum + (f.role === "thief" ? f.stolen : 0), 0);
+      const getFig = (id, g = state.game) => g.figures.find(f => f.id === id);
+      const activeFig = (g = state.game) => getFig(TURN_ORDER[g.turnIndex], g);
+      const playerById = (id) => state.players.find(p => p.id === id);
+      const hostPlayer = () => state.players.find(p => p.host);
+
+      // Who is allowed to act for this figure right now?
+      function controllerOf(figId) {
+        if (net.mode === "local") return myId;
+        const owner = state.seats[figId];
+        const p = owner && playerById(owner);
+        if (p && p.online) return owner;
+        const h = hostPlayer();
+        return h ? h.id : null; // host covers open / disconnected seats
       }
 
-      function showVictory(title, text) {
-        gameOver = true;
-        document.getElementById("victory-title").textContent = title;
-        document.getElementById("victory-text").textContent = text;
-        document.getElementById("victory-banner").classList.add("show");
+      function canIAct() {
+        const g = state.game;
+        return state.phase === "playing" && !g.gameOver && !sandboxMode && controllerOf(activeFig().id) === myId;
       }
 
-      function getActiveFigure() {
-        const id = TURN_ORDER[turnIndex];
-        return figures.find(f => f.id === id);
+      function figName(fig) {
+        if (!isOnline()) return fig.id;
+        const owner = playerById(state.seats[fig.id]);
+        return owner ? `${fig.id} (${owner.name})` : fig.id;
       }
 
-      function setLog(msg) {
-        document.getElementById("status-log").textContent = msg;
+      const getTotalStolen = (g = state.game) =>
+        g.figures.reduce((sum, f) => sum + (f.role === "thief" ? f.stolen : 0), 0);
+
+      function formatSpaceLabel(spaceId) {
+        if (spaceId === "comandancia") return "Comandancia";
+        if (HEISTS[spaceId]) return `${HEISTS[spaceId].icon} ${HEISTS[spaceId].name}`;
+        if (CORNERS[spaceId]) return CORNERS[spaceId].color === "orange" ? "Thief start" : "Police start";
+        const [r, c] = spaceId.split(",");
+        return `Street (${r},${c})`;
       }
 
-      function renderWalls() {
-        wallLayer.innerHTML = "";
-        for (const ek of walls) {
-          const [aKey, bKey] = ek.split("|");
-          const a = cells.get(aKey);
-          const b = cells.get(bKey);
-          if (!a || !b) continue;
-
-          const mx = (a.cx + b.cx) / 2;
-          const my = (a.cy + b.cy) / 2;
-          const dx = b.cx - a.cx;
-          const dy = b.cy - a.cy;
-          const len = Math.hypot(dx, dy);
-          const px = -dy / len;
-          const py = dx / len;
-          const halfEdge = R_PX * 0.5;
-
-          const x1 = (mx - px * halfEdge).toFixed(2);
-          const y1 = (my - py * halfEdge).toFixed(2);
-          const x2 = (mx + px * halfEdge).toFixed(2);
-          const y2 = (my + py * halfEdge).toFixed(2);
-
-          // Light outline for contrast over red/tan hexes
-          el("line", {
-            x1, y1, x2, y2,
-            stroke: "#f8fafc",
-            "stroke-width": "9",
-            "stroke-linecap": "round",
-            opacity: "0.75",
-            "pointer-events": "none"
-          }, wallLayer);
-
-          // Bold wall line
-          el("line", {
-            x1, y1, x2, y2,
-            stroke: "#111827",
-            "stroke-width": "5.5",
-            "stroke-linecap": "round",
-            "pointer-events": "none"
-          }, wallLayer);
-        }
+      // =====================================================================
+      // 6. Rules engine (runs ONLY on the authority: local or host)
+      // =====================================================================
+      function addLog(text, kind = "info") {
+        const g = state.game;
+        g.logSeq += 1;
+        g.log.push({ id: g.logSeq, text, kind });
+        if (g.log.length > 50) g.log.shift();
       }
 
-      function resetGame() {
-        walls = new Set(BALANCED_WALLS);
-        renderWalls();
-        figures = INITIAL_FIGURES.map(f => ({ ...f }));
-        turnIndex = 0;
-        currentRoll = null;
-        reachableSpaces = new Set();
-        gameOver = false;
-        sandboxSelectedId = null;
-        document.getElementById("victory-banner").classList.remove("show");
-        document.getElementById("dice-face").textContent = "–";
-        document.getElementById("side-dice-big").textContent = "–";
-        setLog("P1's turn — Roll the dice!");
-        render();
+      function declareWinner(team, title, text) {
+        const g = state.game;
+        g.gameOver = true;
+        g.currentRoll = null;
+        g.winner = { team, title, text };
+        addLog(`🏆 ${title} ${text}`, "win");
       }
 
       function advanceTurn() {
-        currentRoll = null;
-        reachableSpaces = new Set();
+        const g = state.game;
+        g.currentRoll = null;
         for (let i = 0; i < TURN_ORDER.length; i++) {
-          turnIndex = (turnIndex + 1) % TURN_ORDER.length;
-          const candidate = getActiveFigure();
-          if (!candidate.permanentlyJailed) break;
+          g.turnIndex = (g.turnIndex + 1) % TURN_ORDER.length;
+          if (!activeFig(g).permanentlyJailed) break;
         }
-        const next = getActiveFigure();
-        document.getElementById("dice-face").textContent = "–";
-        document.getElementById("side-dice-big").textContent = "–";
-        if (next.jailedTurns > 0) {
-          setLog(`${next.id} is in Jail (${next.jailedTurns} turn) — Click "Serve Jail Turn".`);
-        } else {
-          setLog(`${next.id}'s turn — Roll the dice!`);
-        }
-        render();
       }
 
-      function rollDice() {
-        if (gameOver || sandboxMode) return;
-        const active = getActiveFigure();
-
-        // Handle jailed thief serving their 1-turn sentence
-        if (active.jailedTurns > 0) {
-          active.jailedTurns = 0;
-          setLog(`${active.id} served 1 turn in Comandancia and can leave on their next turn!`);
-          advanceTurn();
-          return;
-        }
-
-        if (currentRoll !== null) return;
-
-        const diceEl = document.getElementById("dice-face");
-        const sideDiceEl = document.getElementById("side-dice-big");
-        const rollBtn = document.getElementById("btn-roll");
-        const sideRollBtn = document.getElementById("btn-roll-side");
-        rollBtn.disabled = true;
-        sideRollBtn.disabled = true;
-        diceEl.classList.add("rolling");
-        sideDiceEl.classList.add("rolling");
-
-        setTimeout(() => {
-          diceEl.classList.remove("rolling");
-          sideDiceEl.classList.remove("rolling");
-          const rolled = DICE_FACES[Math.floor(Math.random() * DICE_FACES.length)];
-          currentRoll = rolled;
-          diceEl.textContent = rolled;
-          sideDiceEl.textContent = rolled;
-
-          if (rolled === 0) {
-            setLog(`${active.id} rolled 0 — No movement. Turn passes.`);
-            render();
-            setTimeout(() => {
-              if (!gameOver && !sandboxMode && currentRoll === 0) {
-                advanceTurn();
-              }
-            }, 900);
-          } else {
-            reachableSpaces = getReachableSpaces(active.space, rolled, active.role);
-            setLog(`${active.id} rolled ${rolled} — Click a green hex to move (up to ${rolled} steps).`);
-            render();
-          }
-        }, 260);
-      }
-
-      function applyMoveEffects(fig, targetSpace) {
+      function applyMoveEffects(fig, targetSpace, roll) {
+        const g = state.game;
         fig.space = targetSpace;
+        const rolled = roll ? ` (rolled ${roll})` : "";
 
         if (fig.role === "thief") {
-          // Check heist plot
           if (HEISTS[targetSpace]) {
             const h = HEISTS[targetSpace];
             fig.stolen += h.amount;
-            const totalStolen = getTotalStolen();
-            setLog(`${fig.id} robbed ${h.name} (+${h.value})! Total stolen: $${totalStolen.toLocaleString()}`);
-            if (totalStolen >= GOAL_AMOUNT) {
-              showVictory(
-                "Thieves Win!",
-                `The thieves stole $${totalStolen.toLocaleString()} and reached the $100,000 goal!`
-              );
+            const total = getTotalStolen();
+            addLog(`${h.icon} ${figName(fig)} robbed the ${h.name} for ${h.value}! Team loot: ${money(total)}`, "heist");
+            if (total >= GOAL_AMOUNT) {
+              declareWinner("thief", "Thieves win!", `The crew stole ${money(total)} and hit the ${money(GOAL_AMOUNT)} goal.`);
             }
           } else {
-            setLog(`${fig.id} moved to ${formatSpaceLabel(targetSpace)}.`);
-          }
-        } else {
-          // Police catches any active thief on the target space (outside Comandancia)
-          if (targetSpace !== "comandancia") {
-            const caught = figures.filter(
-              f => f.role === "thief" && f.space === targetSpace && !f.permanentlyJailed
-            );
-            if (caught.length > 0) {
-              const notes = [];
-              for (const t of caught) {
-                t.space = "comandancia";
-                t.captures += 1;
-                if (t.captures >= 3) {
-                  const lost = t.stolen;
-                  t.stolen = 0;
-                  t.jailedTurns = 0;
-                  t.permanentlyJailed = true;
-                  notes.push(`${t.id} (3rd capture — jailed permanently, $${lost.toLocaleString()} lost!)`);
-                } else {
-                  t.jailedTurns = 1;
-                  notes.push(`${t.id} (capture ${t.captures}/3 — 1 turn in jail)`);
-                }
-              }
-              setLog(`${fig.id} caught ${notes.join(" & ")}`);
-
-              const bothCaptured = figures
-                .filter(f => f.role === "thief")
-                .every(t => t.jailedTurns > 0 || t.permanentlyJailed);
-              if (bothCaptured) {
-                showVictory(
-                  "Police Win!",
-                  "Both thieves are captured in Comandancia at the same time!"
-                );
-              }
-              return;
-            }
-          }
-          setLog(`${fig.id} moved to ${formatSpaceLabel(targetSpace)}.`);
-        }
-      }
-
-      function handleSpaceClick(spaceId) {
-        if (gameOver) return;
-
-        if (sandboxMode) {
-          if (!sandboxSelectedId) return;
-          const fig = figures.find(f => f.id === sandboxSelectedId);
-          if (fig) {
-            applyMoveEffects(fig, spaceId);
-            render();
+            addLog(`${figName(fig)} moved to ${formatSpaceLabel(targetSpace)}${rolled}.`, "info");
           }
           return;
         }
 
-        const active = getActiveFigure();
-        if (currentRoll === null || currentRoll === 0) return;
-        if (!reachableSpaces.has(spaceId)) return;
+        // Police catches any free thief on the target space
+        if (targetSpace !== "comandancia") {
+          const caught = g.figures.filter(f => f.role === "thief" && f.space === targetSpace && !f.permanentlyJailed);
+          if (caught.length > 0) {
+            const notes = [];
+            for (const t of caught) {
+              t.space = "comandancia";
+              t.captures += 1;
+              if (t.captures >= 3) {
+                const lost = t.stolen;
+                t.stolen = 0;
+                t.jailedTurns = 0;
+                t.permanentlyJailed = true;
+                notes.push(`${figName(t)} — 3rd arrest, locked up for good (${money(lost)} lost)`);
+              } else {
+                t.jailedTurns = 1;
+                notes.push(`${figName(t)} — arrest ${t.captures}/3, 1 turn in jail`);
+              }
+            }
+            addLog(`🚨 ${figName(fig)} caught ${notes.join(" & ")}`, "capture");
+            const allCaught = g.figures
+              .filter(f => f.role === "thief")
+              .every(t => t.jailedTurns > 0 || t.permanentlyJailed);
+            if (allCaught) {
+              declareWinner("police", "Police win!", "Both thieves are behind bars at the same time.");
+            }
+            return;
+          }
+        }
+        addLog(`${figName(fig)} moved to ${formatSpaceLabel(targetSpace)}${rolled}.`, "info");
+      }
 
-        applyMoveEffects(active, spaceId);
-        if (!gameOver) {
-          advanceTurn();
-        } else {
-          currentRoll = null;
-          reachableSpaces = new Set();
-          render();
+      // Returns true if state changed.
+      function applyAction(a, senderId) {
+        if (!a || typeof a !== "object") return false;
+        if (state.phase !== "playing") return false;
+        const g = state.game;
+        if (g.gameOver) return false;
+        const act = activeFig();
+        if (controllerOf(act.id) !== senderId) return false;
+
+        if (a.type === "roll") {
+          if (act.jailedTurns > 0) {
+            act.jailedTurns = 0;
+            addLog(`⛓️ ${figName(act)} served their jail turn — free to move next round.`, "jail");
+            advanceTurn();
+            return true;
+          }
+          if (g.currentRoll !== null) return false;
+          const rolled = DICE_FACES[Math.floor(Math.random() * DICE_FACES.length)];
+          g.currentRoll = rolled;
+          g.rollSeq += 1;
+          if (rolled === 0) {
+            addLog(`🎲 ${figName(act)} rolled 0 — no movement.`, "info");
+            const seq = g.rollSeq;
+            setTimeout(() => {
+              if (state.game === g && g.rollSeq === seq && g.currentRoll === 0 && !g.gameOver) {
+                advanceTurn();
+                commit();
+              }
+            }, 1500);
+          }
+          return true;
+        }
+
+        if (a.type === "move") {
+          if (!g.currentRoll) return false;
+          const space = String(a.space || "");
+          if (!getReachableSpaces(act.space, g.currentRoll).has(space)) return false;
+          const roll = g.currentRoll;
+          applyMoveEffects(act, space, roll);
+          if (!g.gameOver) advanceTurn();
+          return true;
+        }
+        return false;
+      }
+
+      function claimSeat(clientId, seat) {
+        if (state.phase !== "lobby" || !Object.prototype.hasOwnProperty.call(state.seats, seat)) return false;
+        const owner = state.seats[seat];
+        if (owner === clientId) {
+          state.seats[seat] = null;
+          return true;
+        }
+        const ownerSeatCount = owner ? Object.values(state.seats).filter(s => s === owner).length : 0;
+        if (!owner || ownerSeatCount >= 2) {
+          state.seats[seat] = clientId;
+          return true;
+        }
+        return false;
+      }
+
+      function autoSeat(clientId) {
+        // First guest takes the thieves by default; later guests take any seat from a 2-seat holder.
+        const free = Object.keys(state.seats).filter(s => !state.seats[s]);
+        if (free.length) {
+          free.filter(s => ROLE_OF[s] === "thief").forEach(s => { state.seats[s] = clientId; });
+          if (!Object.values(state.seats).includes(clientId)) state.seats[free[0]] = clientId;
+          return;
+        }
+        for (const s of ["T2", "P2", "T1", "P1"]) {
+          if (claimSeat(clientId, s)) return;
         }
       }
 
-      // --- 5. Token Rendering & Drag (for Sandbox Mode) ---
+      function startMatch() {
+        for (const s of Object.keys(state.seats)) {
+          if (!state.seats[s] || !playerById(state.seats[s])) state.seats[s] = myId;
+        }
+        state.phase = "playing";
+        state.game = freshGame();
+        addLog("🚦 Match started — Police 1 moves first.", "system");
+      }
+
+      // =====================================================================
+      // 7. Dispatch / commit / sync
+      // =====================================================================
+      function dispatch(action) {
+        if (isAuthority()) {
+          if (applyAction(action, myId)) commit();
+        } else if (net.mode === "guest" && net.hostConn && net.hostConn.open) {
+          net.hostConn.send({ t: "action", a: action });
+        }
+      }
+
+      function broadcast() {
+        if (net.mode !== "host") return;
+        const msg = { t: "state", state };
+        for (const conn of net.conns.values()) {
+          if (conn.open) {
+            try { conn.send(msg); } catch { /* ignore */ }
+          }
+        }
+      }
+
+      function commit() {
+        broadcast();
+        onStateUpdated();
+      }
+
+      function onStateUpdated() {
+        const g = state.game;
+        if (g.id !== tracker.gameId) {
+          // New game: reset trackers silently
+          tracker = { gameId: g.id, rollSeq: g.rollSeq, logSeq: g.logSeq, myTurn: false };
+          victoryDismissed = false;
+        } else {
+          if (g.rollSeq !== tracker.rollSeq && g.currentRoll !== null) {
+            rollAnimUntil = Date.now() + 520;
+            const die = $("die");
+            die.classList.remove("rolling");
+            void die.offsetWidth;
+            die.classList.add("rolling");
+            setTimeout(render, 540);
+          }
+          for (const entry of g.log) {
+            if (entry.id > tracker.logSeq && (entry.kind === "heist" || entry.kind === "capture")) {
+              toast(entry.text, entry.kind);
+            }
+          }
+          tracker.rollSeq = g.rollSeq;
+          tracker.logSeq = g.logSeq;
+        }
+
+        // "Your turn" ping in online play
+        const mine = isOnline() && canIAct();
+        if (mine && !tracker.myTurn) {
+          const act = activeFig();
+          toast(`🎯 Your turn — ${act.id}`, "turn");
+          if (document.hidden) document.title = "🎯 Your turn! — Hex Heist";
+        }
+        tracker.myTurn = mine;
+        render();
+      }
+
+      document.addEventListener("visibilitychange", () => {
+        if (!document.hidden) document.title = "Hex Heist — Cops vs. Robbers";
+      });
+
+      // =====================================================================
+      // 8. Networking (PeerJS / WebRTC, host-authoritative)
+      // =====================================================================
+      const PEER_PREFIX = "hexheist-v2-";
+      const CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+      const hostPeerId = (code) => PEER_PREFIX + code;
+
+      function genCode() {
+        let s = "";
+        for (let i = 0; i < 5; i++) s += CODE_ALPHABET[Math.floor(Math.random() * CODE_ALPHABET.length)];
+        return s;
+      }
+
+      function normalizeCode(c) {
+        return String(c || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 5);
+      }
+
+      function peerAvailable() {
+        if (window.Peer) return true;
+        menuStatus("Online play needs the PeerJS library, which failed to load. Check your connection and reload.", true);
+        return false;
+      }
+
+      function leaveSession() {
+        clearTimeout(net.joinTimer);
+        const peer = net.peer;
+        net.peer = null;
+        net.hostConn = null;
+        for (const c of net.conns.values()) {
+          try { c.close(); } catch { /* ignore */ }
+        }
+        net.conns.clear();
+        net.mode = "menu";
+        net.code = null;
+        net.connected = true;
+        if (peer) {
+          try { peer.destroy(); } catch { /* ignore */ }
+        }
+        if (location.search) history.replaceState(null, "", location.pathname);
+      }
+
+      function createMatch(attempt = 0) {
+        if (!peerAvailable()) return;
+        leaveSession();
+        const code = genCode();
+        menuStatus('<span class="spinner"></span>Creating match…', false, true);
+        setMenuBusy(true);
+        const peer = new Peer(hostPeerId(code), { debug: 0 });
+        net.peer = peer;
+
+        peer.on("open", () => {
+          if (net.peer !== peer) return;
+          net.mode = "host";
+          net.code = code;
+          state = freshState();
+          state.code = code;
+          state.players = [{ id: myId, name: myName(), online: true, host: true }];
+          state.seats.P1 = myId;
+          state.seats.P2 = myId;
+          sandboxMode = false;
+          setMenuBusy(false);
+          menuStatus("");
+          hide("menu-screen");
+          commit();
+        });
+
+        peer.on("connection", (conn) => setupHostConn(conn));
+
+        peer.on("disconnected", () => {
+          // Lost the signalling server; keep existing peers, try to stay discoverable.
+          if (net.peer === peer && !peer.destroyed) {
+            setTimeout(() => { if (net.peer === peer && !peer.destroyed) peer.reconnect(); }, 1500);
+          }
+        });
+
+        peer.on("error", (err) => {
+          if (net.peer !== peer) return;
+          if (err.type === "unavailable-id" && attempt < 4) {
+            createMatch(attempt + 1);
+            return;
+          }
+          if (net.mode === "host") {
+            if (err.type === "network" || err.type === "server-error" || err.type === "socket-error") {
+              toast("⚠️ Lost connection to the match server — players already in can keep playing.");
+            }
+            return;
+          }
+          setMenuBusy(false);
+          menuStatus(`Couldn't create a match (${err.type}). Try again.`, true);
+          leaveSession();
+        });
+      }
+
+      function setupHostConn(conn) {
+        conn.on("data", (msg) => {
+          if (!msg || typeof msg !== "object" || net.mode !== "host") return;
+
+          if (msg.t === "hello") {
+            const cid = String(msg.clientId || "").slice(0, 64);
+            if (!cid || cid === myId) return;
+            let p = playerById(cid);
+            if (!p) {
+              if (state.players.length >= MAX_PLAYERS) {
+                conn.send({ t: "reject", reason: "This match is full (4 players)." });
+                setTimeout(() => conn.close(), 400);
+                return;
+              }
+              p = { id: cid, name: cleanName(msg.name), online: true, host: false };
+              state.players.push(p);
+              if (state.phase === "lobby") autoSeat(cid);
+              else addLog(`👋 ${p.name} joined as a spectator.`, "system");
+            } else {
+              p.online = true;
+              p.name = cleanName(msg.name);
+              if (state.phase === "playing") addLog(`🔌 ${p.name} reconnected.`, "system");
+            }
+            const old = net.conns.get(cid);
+            if (old && old !== conn) {
+              old._replaced = true;
+              try { old.close(); } catch { /* ignore */ }
+            }
+            conn._cid = cid;
+            net.conns.set(cid, conn);
+            toast(`👋 ${p.name} joined`);
+            commit();
+            return;
+          }
+
+          const cid = conn._cid;
+          if (!cid) return;
+          if (msg.t === "claim") {
+            if (claimSeat(cid, msg.seat)) commit();
+          } else if (msg.t === "action") {
+            if (applyAction(msg.a, cid)) commit();
+          }
+        });
+
+        const onGone = () => {
+          const cid = conn._cid;
+          if (!cid || conn._replaced || net.conns.get(cid) !== conn || net.mode !== "host") return;
+          net.conns.delete(cid);
+          const p = playerById(cid);
+          if (!p) return;
+          if (state.phase === "lobby") {
+            state.players = state.players.filter(x => x.id !== cid);
+            for (const s of Object.keys(state.seats)) if (state.seats[s] === cid) state.seats[s] = null;
+          } else {
+            p.online = false;
+            addLog(`🔌 ${p.name} disconnected — the host controls their figures until they return.`, "system");
+          }
+          toast(`${p.name} left`);
+          commit();
+        };
+        conn.on("close", onGone);
+        conn.on("error", onGone);
+      }
+
+      function joinMatch(rawCode) {
+        const code = normalizeCode(rawCode);
+        if (code.length !== 5) {
+          menuStatus("Enter the 5-character match code.", true);
+          $("code-input").focus();
+          return;
+        }
+        if (!peerAvailable()) return;
+        leaveSession();
+        setMenuBusy(true);
+        menuStatus(`<span class="spinner"></span>Joining ${code}…`, false, true);
+
+        const peer = new Peer({ debug: 0 });
+        net.peer = peer;
+
+        const fail = (text) => {
+          if (net.peer !== peer) return;
+          setMenuBusy(false);
+          leaveSession();
+          menuStatus(text, true);
+          show("menu-screen");
+        };
+
+        net.joinTimer = setTimeout(() => {
+          if (net.mode !== "guest") fail(`Couldn't reach match ${code}. Check the code and that the host is still online.`);
+        }, 15000);
+
+        peer.on("open", () => {
+          if (net.peer !== peer) return;
+          const conn = peer.connect(hostPeerId(code), { reliable: true });
+          net.hostConn = conn;
+
+          conn.on("open", () => conn.send({ t: "hello", clientId: myId, name: myName() }));
+
+          conn.on("data", (msg) => {
+            if (!msg || typeof msg !== "object" || net.peer !== peer) return;
+            if (msg.t === "reject") {
+              fail(msg.reason || "The host rejected the connection.");
+              return;
+            }
+            if (msg.t === "state" && msg.state) {
+              if (net.mode !== "guest") {
+                clearTimeout(net.joinTimer);
+                net.mode = "guest";
+                net.code = code;
+                net.connected = true;
+                sandboxMode = false;
+                setMenuBusy(false);
+                menuStatus("");
+                hide("menu-screen");
+              }
+              state = msg.state;
+              onStateUpdated();
+            }
+          });
+
+          conn.on("close", () => {
+            if (net.peer !== peer || net.hostConn !== conn) return;
+            if (net.mode === "guest") {
+              leaveSession();
+              state = freshState();
+              render();
+              showAlert("Disconnected", "The host left the match or the connection dropped. You can rejoin with the same code if the host is still online.", () => show("menu-screen"));
+            } else {
+              fail("Connection closed by host.");
+            }
+          });
+        });
+
+        peer.on("error", (err) => {
+          if (err.type === "peer-unavailable") fail(`No match found with code ${code}.`);
+          else if (net.mode !== "guest") fail(`Connection error (${err.type}). Try again.`);
+        });
+      }
+
+      function startLocal() {
+        leaveSession();
+        net.mode = "local";
+        state = freshState();
+        state.players = [{ id: myId, name: myName(), online: true, host: true }];
+        for (const s of Object.keys(state.seats)) state.seats[s] = myId;
+        state.phase = "playing";
+        state.game = freshGame();
+        addLog("🚦 Local game started — Police 1 moves first.", "system");
+        hide("menu-screen");
+        commit();
+      }
+
+      function inviteLink() {
+        return `${location.origin}${location.pathname}?join=${net.code}`;
+      }
+
+      async function copyText(text, label) {
+        try {
+          await navigator.clipboard.writeText(text);
+          toast(`📋 ${label} copied`);
+        } catch {
+          window.prompt(`Copy the ${label.toLowerCase()}:`, text);
+        }
+      }
+
+      // =====================================================================
+      // 9. Board interaction
+      // =====================================================================
+      function handleSpaceClick(spaceId) {
+        const g = state.game;
+        if (state.phase !== "playing" || g.gameOver) return;
+
+        if (sandboxMode && net.mode === "local") {
+          if (!sandboxSelectedId) return;
+          const fig = getFig(sandboxSelectedId);
+          if (fig) {
+            applyMoveEffects(fig, spaceId, null);
+            commit();
+          }
+          return;
+        }
+
+        if (!canIAct() || Date.now() < rollAnimUntil) return;
+        if (!g.currentRoll) return;
+        if (!getReachableSpaces(activeFig().space, g.currentRoll).has(spaceId)) return;
+        dispatch({ type: "move", space: spaceId });
+      }
+
       function getSpaceCenter(spaceId) {
         if (spaceId === "comandancia") return COMANDANCIA_CENTER;
         const c = cells.get(spaceId);
         return { cx: c.cx, cy: c.cy };
       }
 
-      function formatSpaceLabel(spaceId) {
-        if (spaceId === "comandancia") return "Comandancia";
-        const [r, c] = spaceId.split(",");
-        return `Hex (${r}, ${c})`;
-      }
-
-      function getSpaceSubInfo(spaceId, fig) {
-        if (fig.permanentlyJailed) {
-          return { text: `LOCKED UP (3/3) • $0`, cls: "jailed" };
-        }
-        if (fig.jailedTurns > 0 && spaceId === "comandancia") {
-          return { text: `JAILED (${fig.captures}/3) • $${fig.stolen.toLocaleString()}`, cls: "jailed" };
-        }
-        if (fig.role === "thief") {
-          const place = HEISTS[spaceId]
-            ? `${HEISTS[spaceId].name} (+${HEISTS[spaceId].shortVal})`
-            : (spaceId === "comandancia" ? "Comandancia" : "Street");
-          return {
-            text: `${place} • $${fig.stolen.toLocaleString()} (${fig.captures}/3)`,
-            cls: HEISTS[spaceId] ? "on-heist" : ""
-          };
-        }
-        if (spaceId === "comandancia") return { text: "Comandancia Base", cls: "" };
-        if (HEISTS[spaceId]) {
-          const h = HEISTS[spaceId];
-          return { text: `${h.name} • ${h.tier} • ${h.value}`, cls: "on-heist" };
-        }
-        if (CORNERS[spaceId]) {
-          const co = CORNERS[spaceId];
-          return { text: co.color === "orange" ? "Orange Corner" : "Blue Corner", cls: "" };
-        }
-        return { text: "Street", cls: "" };
-      }
-
       function getFigureCoords(fig) {
-        const sameSpace = figures.filter(f => f.space === fig.space);
+        const sameSpace = state.game.figures.filter(f => f.space === fig.space);
         const base = getSpaceCenter(fig.space);
-        if (sameSpace.length === 1) return { x: base.cx, y: base.cy };
-
+        if (sameSpace.length === 1 && fig.space !== "comandancia") return { x: base.cx, y: base.cy };
         const idx = sameSpace.findIndex(f => f.id === fig.id);
         if (fig.space === "comandancia") {
           const spots = [
-            { x: c20.cx - 8, y: c20.cy + 10 },
-            { x: c40.cx - 8, y: c40.cy - 10 },
-            { x: c30.cx + 4, y: c30.cy },
-            { x: c30.cx - 16, y: c30.cy }
+            { x: c20.cx - 6, y: c20.cy + 6 },
+            { x: c40.cx - 6, y: c40.cy - 6 },
+            { x: c30.cx + 6, y: c30.cy + 18 },
+            { x: c30.cx - 20, y: c30.cy + 18 }
           ];
           return spots[idx % spots.length];
         }
         const angle = (idx / sameSpace.length) * Math.PI * 2 - Math.PI / 4;
         const offsetR = sameSpace.length === 2 ? 15 : 18;
-        return {
-          x: base.cx + offsetR * Math.cos(angle),
-          y: base.cy + offsetR * Math.sin(angle)
-        };
+        return { x: base.cx + offsetR * Math.cos(angle), y: base.cy + offsetR * Math.sin(angle) };
       }
 
+      // Token artwork
       const tokenNodes = new Map();
       for (const fig of INITIAL_FIGURES) {
         const g = el("g", { class: "token-group", filter: "url(#token-shadow)" }, tokenLayer);
         el("circle", { cx: 0, cy: 0, r: 24, class: "token-ring" }, g);
-        el("polygon", {
-          points: "0,-25 -7.5,-36 7.5,-36",
-          class: "token-turn-marker"
-        }, g);
+        el("polygon", { points: "0,-25 -7.5,-36 7.5,-36", class: "token-turn-marker" }, g);
 
         if (fig.id === "P1") {
-          // P1: Royal Blue Shield / Octagon with Gold Star
-          const octPts = [];
+          const oct = [];
           for (let i = 0; i < 8; i++) {
             const a = (i * 45 + 22.5) * (Math.PI / 180);
-            octPts.push(`${(19.5 * Math.cos(a)).toFixed(1)},${(19.5 * Math.sin(a)).toFixed(1)}`);
+            oct.push(`${(19.5 * Math.cos(a)).toFixed(1)},${(19.5 * Math.sin(a)).toFixed(1)}`);
           }
-          el("polygon", { points: octPts.join(" "), fill: "#0f172a" }, g);
-          el("polygon", {
-            points: octPts.join(" "),
-            transform: "scale(0.88)",
-            fill: "#2563eb",
-            stroke: "#ffffff",
-            "stroke-width": "2.4"
-          }, g);
-          el("text", {
-            x: 0, y: -6, "text-anchor": "middle", "font-size": "9.5",
-            fill: "#facc15", "pointer-events": "none"
-          }, g).textContent = "★";
+          el("polygon", { points: oct.join(" "), fill: "#0f172a" }, g);
+          el("polygon", { points: oct.join(" "), transform: "scale(0.88)", fill: "#2563eb", stroke: "#ffffff", "stroke-width": "2.4" }, g);
+          el("text", { x: 0, y: -6, "text-anchor": "middle", "font-size": "9.5", fill: "#facc15", "pointer-events": "none" }, g).textContent = "★";
         } else if (fig.id === "P2") {
-          // P2: Cyan-Teal Hexagon Badge with Chevrons
-          const hexPts = [];
+          const hex = [];
           for (let i = 0; i < 6; i++) {
             const a = (i * 60) * (Math.PI / 180);
-            hexPts.push(`${(20 * Math.cos(a)).toFixed(1)},${(20 * Math.sin(a)).toFixed(1)}`);
+            hex.push(`${(20 * Math.cos(a)).toFixed(1)},${(20 * Math.sin(a)).toFixed(1)}`);
           }
-          el("polygon", { points: hexPts.join(" "), fill: "#0f172a" }, g);
-          el("polygon", {
-            points: hexPts.join(" "),
-            transform: "scale(0.88)",
-            fill: "#0284c7",
-            stroke: "#ffffff",
-            "stroke-width": "2.4"
-          }, g);
-          el("path", {
-            d: "M -7 -7 L 0 -11 L 7 -7",
-            fill: "none", stroke: "#bae6fd", "stroke-width": "2", "stroke-linecap": "round"
-          }, g);
+          el("polygon", { points: hex.join(" "), fill: "#0f172a" }, g);
+          el("polygon", { points: hex.join(" "), transform: "scale(0.88)", fill: "#0284c7", stroke: "#ffffff", "stroke-width": "2.4" }, g);
+          el("path", { d: "M -7 -7 L 0 -11 L 7 -7", fill: "none", stroke: "#bae6fd", "stroke-width": "2", "stroke-linecap": "round" }, g);
         } else if (fig.id === "T1") {
-          // T1: Bright Orange Circle with Bandit Eye-Mask
           el("circle", { cx: 0, cy: 0, r: 19.5, fill: "#0f172a" }, g);
-          el("circle", {
-            cx: 0, cy: 0, r: 17,
-            fill: "#f97316",
-            stroke: "#ffffff",
-            "stroke-width": "2.4"
-          }, g);
-          el("rect", {
-            x: -10, y: -11, width: 20, height: 6.5, rx: 3,
-            fill: "#111827", opacity: "0.88"
-          }, g);
+          el("circle", { cx: 0, cy: 0, r: 17, fill: "#f97316", stroke: "#ffffff", "stroke-width": "2.4" }, g);
+          el("rect", { x: -10, y: -11, width: 20, height: 6.5, rx: 3, fill: "#111827", opacity: "0.88" }, g);
         } else {
-          // T2: Amber-Gold Rounded Square with Hood Accent
-          el("rect", {
-            x: -18.5, y: -18.5, width: 37, height: 37, rx: 10,
-            fill: "#0f172a"
-          }, g);
-          el("rect", {
-            x: -16, y: -16, width: 32, height: 32, rx: 8,
-            fill: "#d97706",
-            stroke: "#ffffff",
-            "stroke-width": "2.4"
-          }, g);
-          el("path", {
-            d: "M -11 -7 Q 0 -14 11 -7 L 9 -3 L -9 -3 Z",
-            fill: "#111827", opacity: "0.85"
-          }, g);
+          el("rect", { x: -18.5, y: -18.5, width: 37, height: 37, rx: 10, fill: "#0f172a" }, g);
+          el("rect", { x: -16, y: -16, width: 32, height: 32, rx: 8, fill: "#d97706", stroke: "#ffffff", "stroke-width": "2.4" }, g);
+          el("path", { d: "M -11 -7 Q 0 -14 11 -7 L 9 -3 L -9 -3 Z", fill: "#111827", opacity: "0.85" }, g);
         }
 
-        const txt = el("text", {
-          x: 0, y: 7.5,
-          "text-anchor": "middle", "font-size": "13", "font-weight": "900",
-          fill: "#ffffff", "pointer-events": "none",
-          style: "text-shadow: 0 1px 2px rgba(0,0,0,0.6);"
-        }, g);
-        txt.textContent = fig.id;
+        el("text", {
+          x: 0, y: 7.5, "text-anchor": "middle", "font-size": "13", "font-weight": "900",
+          fill: "#ffffff", "pointer-events": "none", style: "text-shadow: 0 1px 2px rgba(0,0,0,0.6);"
+        }, g).textContent = fig.id;
 
         tokenNodes.set(fig.id, g);
         g.addEventListener("pointerdown", (e) => onTokenPointerDown(e, fig.id));
       }
+
+      // Sandbox drag & drop
+      let dragState = null;
 
       function svgPointFromEvent(e) {
         const pt = svg.createSVGPoint();
@@ -1907,10 +2110,9 @@
         let bestDist = Infinity;
         for (const cell of cells.values()) {
           const d = Math.hypot(x - cell.cx, y - cell.cy);
-          const id = COMANDANCIA_CELLS.has(cell.key) ? "comandancia" : cell.key;
           if (d < bestDist) {
             bestDist = d;
-            bestId = id;
+            bestId = COMANDANCIA_CELLS.has(cell.key) ? "comandancia" : cell.key;
           }
         }
         return bestDist <= R_PX * 1.45 ? bestId : null;
@@ -1922,30 +2124,18 @@
 
       function onTokenPointerDown(e, figId) {
         e.stopPropagation();
-        if (!sandboxMode) {
-          // If clicking a token that sits on a reachable hex (e.g. Police capturing a Thief), treat as clicking that hex!
-          const clickedFig = figures.find(f => f.id === figId);
-          if (clickedFig && reachableSpaces.has(clickedFig.space)) {
-            handleSpaceClick(clickedFig.space);
-          }
+        const fig = getFig(figId);
+        if (!fig) return;
+        if (!(sandboxMode && net.mode === "local")) {
+          // Clicking a token on a reachable hex (e.g. police capturing a thief) = clicking the hex.
+          handleSpaceClick(fig.space);
           return;
         }
-
         const pt = svgPointFromEvent(e);
         const node = tokenNodes.get(figId);
-        const fig = figures.find(f => f.id === figId);
         const pos = getFigureCoords(fig);
         tokenLayer.appendChild(node);
-
-        dragState = {
-          figId,
-          startX: pt.x,
-          startY: pt.y,
-          offsetX: pos.x - pt.x,
-          offsetY: pos.y - pt.y,
-          moved: false,
-          hoverSpace: null
-        };
+        dragState = { figId, startX: pt.x, startY: pt.y, offsetX: pos.x - pt.x, offsetY: pos.y - pt.y, moved: false, hoverSpace: null };
         node.setPointerCapture(e.pointerId);
       }
 
@@ -1959,14 +2149,11 @@
           const nx = pt.x + dragState.offsetX;
           const ny = pt.y + dragState.offsetY;
           node.setAttribute("transform", `translate(${nx.toFixed(2)}, ${ny.toFixed(2)})`);
-
           const target = findNearestSpace(nx, ny);
           if (target !== dragState.hoverSpace) {
             clearDropTargets();
             dragState.hoverSpace = target;
-            if (target && spaceElements.has(target)) {
-              spaceElements.get(target).classList.add("drop-target");
-            }
+            if (target && spaceElements.has(target)) spaceElements.get(target).classList.add("drop-target");
           }
         }
       });
@@ -1974,178 +2161,444 @@
       window.addEventListener("pointerup", () => {
         if (!dragState) return;
         const { figId, moved, hoverSpace } = dragState;
-        const node = tokenNodes.get(figId);
-        node.classList.remove("dragging");
+        tokenNodes.get(figId).classList.remove("dragging");
         clearDropTargets();
-
-        if (moved && hoverSpace) {
-          const fig = figures.find(f => f.id === figId);
-          if (fig) applyMoveEffects(fig, hoverSpace);
-          sandboxSelectedId = figId;
-        } else if (!moved) {
-          sandboxSelectedId = sandboxSelectedId === figId ? null : figId;
-        }
-
         dragState = null;
+        if (moved && hoverSpace) {
+          const fig = getFig(figId);
+          if (fig) applyMoveEffects(fig, hoverSpace, null);
+          sandboxSelectedId = figId;
+          commit();
+          return;
+        }
+        if (!moved) sandboxSelectedId = sandboxSelectedId === figId ? null : figId;
         render();
       });
 
-      // --- 6. UI Render ---
-      const hudFiguresEl = document.getElementById("hud-figures");
-      const turnPillsEl = document.getElementById("turn-pills");
-      const rollBtn = document.getElementById("btn-roll");
+      // =====================================================================
+      // 10. UI rendering
+      // =====================================================================
+      const PIPS = { 1: [4], 2: [0, 8], 3: [0, 4, 8] };
+      const dieEl = $("die");
+      dieEl.innerHTML = Array.from({ length: 9 }, () => '<span class="pip"></span>').join("") + '<span class="die-num"></span>';
+
+      function setDie(value) {
+        const on = new Set(PIPS[value] || []);
+        dieEl.querySelectorAll(".pip").forEach((p, i) => p.classList.toggle("on", on.has(i)));
+        dieEl.querySelector(".die-num").textContent = value === 0 ? "0" : (value == null ? "?" : "");
+      }
+
+      function show(id) { $(id).classList.add("show"); }
+      function hide(id) { $(id).classList.remove("show"); }
+      const isShown = (id) => $(id).classList.contains("show");
+
+      function toast(text, kind = "") {
+        const t = document.createElement("div");
+        t.className = `toast ${kind}`;
+        t.textContent = text;
+        const box = $("toasts");
+        box.appendChild(t);
+        while (box.children.length > 3) box.firstChild.remove();
+        setTimeout(() => {
+          t.classList.add("out");
+          setTimeout(() => t.remove(), 320);
+        }, kind ? 3400 : 2400);
+      }
+
+      function showAlert(title, text, onOk) {
+        $("alert-title").textContent = title;
+        $("alert-text").textContent = text;
+        show("alert-screen");
+        $("btn-alert-ok").onclick = () => {
+          hide("alert-screen");
+          if (onOk) onOk();
+        };
+      }
+
+      function menuStatus(html, isError = false, isHtml = false) {
+        const s = $("menu-status");
+        if (isHtml) s.innerHTML = html;
+        else s.textContent = html;
+        s.classList.toggle("err", !!isError);
+      }
+
+      function setMenuBusy(busy) {
+        for (const id of ["btn-local", "btn-host", "btn-join"]) $(id).disabled = busy;
+      }
 
       function render() {
-        const active = getActiveFigure();
-        const hudBar = document.querySelector(".hud-bar");
-        const sidePanel = document.getElementById("side-dice-panel");
-        const sideSub = document.getElementById("side-dice-sub");
-        const sideRollBtn = document.getElementById("btn-roll-side");
-        const turnBadge = document.getElementById("active-turn-badge");
+        const g = state.game;
+        const act = activeFig();
+        const playing = state.phase === "playing";
+        const animating = Date.now() < rollAnimUntil;
+        const myTurn = canIAct();
+        const ctrlId = controllerOf(act.id);
+        const ctrl = playerById(ctrlId);
 
-        // Team-colored HUD frame & prominent active turn badge
-        hudBar.classList.remove("turn-police", "turn-thief");
-        sidePanel.classList.remove("turn-police", "turn-thief");
-        if (sandboxMode) {
-          turnBadge.className = "active-turn-badge sandbox";
-          turnBadge.textContent = sandboxSelectedId ? `SANDBOX • ${sandboxSelectedId}` : "SANDBOX MODE";
-        } else {
-          const teamClass = active.role === "police" ? "turn-police" : "turn-thief";
-          hudBar.classList.add(teamClass);
-          sidePanel.classList.add(teamClass);
-          turnBadge.className = `active-turn-badge ${active.role}`;
-          turnBadge.textContent = `${active.role === "police" ? "POLICE" : "THIEF"} • ${active.id}`;
-        }
+        // --- top bar ---
+        const modeLabel = { menu: "Main menu", local: "Local game", host: "Hosting online", guest: "Online match" }[net.mode];
+        $("mode-label").textContent = modeLabel;
+        $("match-chip").classList.toggle("show", isOnline());
+        $("match-chip-code").textContent = net.code || "-----";
+        $("net-dot").classList.toggle("off", !net.connected);
+        $("btn-sandbox").style.display = net.mode === "local" ? "" : "none";
+        $("btn-sandbox").classList.toggle("btn-on", sandboxMode);
+        $("btn-restart").style.display = isAuthority() && playing ? "" : "none";
 
-        // Highlight reachable hexes
+        const total = getTotalStolen();
+        $("vault-amount").textContent = `${money(total)} / ${money(GOAL_AMOUNT)}`;
+        $("vault-fill").style.width = `${Math.min(100, (total / GOAL_AMOUNT) * 100)}%`;
+
+        // --- board frame ---
+        const area = $("board-area");
+        area.classList.remove("turn-police", "turn-thief");
+        if (playing && !g.gameOver && !sandboxMode) area.classList.add(`turn-${act.role}`);
+
+        // --- reachable hexes ---
+        const showReach = playing && !g.gameOver && !sandboxMode && !animating && g.currentRoll > 0;
+        const reach = showReach ? getReachableSpaces(act.space, g.currentRoll) : new Set();
         for (const [id, poly] of spaceElements.entries()) {
-          poly.classList.toggle("reachable", !sandboxMode && reachableSpaces.has(id));
+          poly.classList.toggle("reachable", reach.has(id));
+          poly.classList.toggle("view-only", reach.has(id) && !myTurn);
+        }
+        reachLayer.innerHTML = "";
+        for (const id of reach) {
+          if (id === "comandancia") continue;
+          const c = cells.get(id);
+          if (!HEISTS[id] && !CORNERS[id]) el("circle", { cx: c.cx, cy: c.cy, r: 6, class: "reach-dot" }, reachLayer);
         }
 
-        // Update tokens
-        for (const fig of figures) {
+        // --- tokens ---
+        for (const fig of g.figures) {
           const node = tokenNodes.get(fig.id);
+          if (dragState && dragState.figId === fig.id) continue;
           const pos = getFigureCoords(fig);
-          const isSelected = sandboxMode ? (fig.id === sandboxSelectedId) : (fig.id === active.id && !gameOver);
+          const isSelected = sandboxMode ? fig.id === sandboxSelectedId : (playing && fig.id === act.id && !g.gameOver);
           const scale = isSelected ? 1.18 : 0.94;
           node.setAttribute("transform", `translate(${pos.x.toFixed(2)}, ${pos.y.toFixed(2)}) scale(${scale})`);
           node.classList.toggle("selected", isSelected);
+          node.classList.toggle("locked", fig.permanentlyJailed);
         }
+        const topId = sandboxMode ? sandboxSelectedId : act.id;
+        if (topId && tokenNodes.has(topId) && !dragState) tokenLayer.appendChild(tokenNodes.get(topId));
 
-        // Bring active token on top
-        const topId = sandboxMode ? sandboxSelectedId : active.id;
-        if (topId && tokenNodes.has(topId)) {
-          tokenLayer.appendChild(tokenNodes.get(topId));
-        }
+        // --- turn card ---
+        const card = $("turn-card");
+        card.className = "card turn-card";
+        const rollBtn = $("btn-roll");
+        const dot = $("turn-dot");
+        const teamEl = $("turn-team");
+        const headline = $("turn-headline");
+        const hint = $("turn-hint");
 
-        // Update Turn Pills
-        turnPillsEl.innerHTML = "";
-        for (const id of TURN_ORDER) {
-          const role = id.startsWith("P") ? "police" : "thief";
-          const pill = document.createElement("span");
-          pill.className = `turn-pill ${role}${!sandboxMode && active.id === id ? " active" : ""}`;
-          pill.textContent = id;
-          turnPillsEl.appendChild(pill);
-        }
-
-        // Update Roll / Jail Button (HUD + Side Panel)
-        if (sandboxMode || gameOver) {
+        if (sandboxMode) {
+          dot.className = "fig-dot p1";
+          dot.textContent = "🧪";
+          teamEl.className = "turn-team sandbox";
+          teamEl.textContent = "Sandbox";
+          headline.textContent = sandboxSelectedId ? `Moving ${sandboxSelectedId}` : "Free play";
+          hint.textContent = "Drag any figure, or tap one then tap a hex. Turn order is paused.";
           rollBtn.disabled = true;
-          rollBtn.textContent = "Roll Dice";
-          rollBtn.className = "btn btn-primary";
-          sideRollBtn.disabled = true;
-          sideRollBtn.textContent = "Roll Dice";
-          sideRollBtn.className = "btn btn-primary";
-          sideSub.textContent = sandboxMode ? "Sandbox active" : "Game Over";
-        } else if (active.jailedTurns > 0) {
-          rollBtn.disabled = false;
-          rollBtn.textContent = "Serve Jail Turn";
-          rollBtn.className = "btn btn-jail";
-          sideRollBtn.disabled = false;
-          sideRollBtn.textContent = "Serve Jail Turn";
-          sideRollBtn.className = "btn btn-jail";
-          sideSub.textContent = `${active.id} is in Jail`;
+          rollBtn.className = "btn btn-primary btn-lg btn-block";
+          rollBtn.innerHTML = "Sandbox on";
+          setDie(g.currentRoll);
         } else {
-          rollBtn.disabled = currentRoll !== null;
-          rollBtn.textContent = "Roll Dice";
-          rollBtn.className = "btn btn-primary";
-          sideRollBtn.disabled = currentRoll !== null;
-          sideRollBtn.textContent = "Roll Dice";
-          sideRollBtn.className = "btn btn-primary";
-          if (currentRoll === null) {
-            sideSub.textContent = `${active.id}: Roll to move`;
-          } else if (currentRoll === 0) {
-            sideSub.textContent = "No movement";
+          card.classList.add(act.role);
+          if (myTurn && isOnline()) card.classList.add("mine");
+          dot.className = `fig-dot ${act.id.toLowerCase()}`;
+          dot.textContent = act.id;
+          teamEl.className = `turn-team ${act.role}`;
+          teamEl.textContent = act.role === "police" ? `Police · ${act.id}` : `Thief · ${act.id}`;
+
+          if (!playing) headline.textContent = "Waiting to start";
+          else if (g.gameOver) headline.textContent = "Game over";
+          else if (!isOnline()) headline.textContent = `${act.id}'s turn`;
+          else if (myTurn) headline.textContent = "Your turn!";
+          else headline.textContent = `${ctrl ? ctrl.name : "?"}'s turn`;
+
+          setDie(animating ? null : g.currentRoll);
+          if (animating) setDie(DICE_FACES[Math.floor(Math.random() * DICE_FACES.length)]);
+
+          const rollLabel = (txt) => `${txt} <span class="kbd">Space</span>`;
+          rollBtn.className = `btn btn-lg btn-block ${act.role === "police" ? "btn-primary" : "btn-thief"}`;
+
+          if (!playing || g.gameOver) {
+            rollBtn.disabled = true;
+            rollBtn.innerHTML = g.gameOver ? "Game over" : "Waiting…";
+            hint.textContent = g.gameOver && g.winner ? g.winner.title : "";
+          } else if (!myTurn) {
+            rollBtn.disabled = true;
+            rollBtn.innerHTML = `⏳ Waiting for ${esc(ctrl ? ctrl.name : act.id)}`;
+            if (act.jailedTurns > 0) hint.textContent = `${act.id} is in jail and must sit out a turn.`;
+            else if (g.currentRoll === null) hint.textContent = `${act.id} is about to roll…`;
+            else if (g.currentRoll === 0) hint.textContent = `${act.id} rolled 0 — no movement.`;
+            else hint.textContent = `${act.id} rolled ${g.currentRoll} and is choosing a hex.`;
+          } else if (act.jailedTurns > 0) {
+            rollBtn.disabled = false;
+            rollBtn.className = "btn btn-jail btn-lg btn-block";
+            rollBtn.innerHTML = rollLabel("⛓️ Serve jail turn");
+            hint.textContent = `${act.id} was caught (${act.captures}/3). Sit out this turn.`;
+          } else if (g.currentRoll === null) {
+            rollBtn.disabled = false;
+            rollBtn.innerHTML = rollLabel("🎲 Roll dice");
+            hint.textContent = act.role === "thief"
+              ? "Roll, then hit a heist hex to grab the loot."
+              : "Roll, then land on a thief to arrest them.";
           } else {
-            sideSub.textContent = `Move up to ${currentRoll} hex${currentRoll > 1 ? "es" : ""}`;
+            rollBtn.disabled = true;
+            rollBtn.innerHTML = `Rolled ${g.currentRoll}`;
+            if (animating) hint.textContent = "Rolling…";
+            else if (g.currentRoll === 0) hint.textContent = "Rolled 0 — no movement. Passing the turn…";
+            else hint.textContent = `Tap a green hex — up to ${g.currentRoll} step${g.currentRoll > 1 ? "s" : ""}.`;
           }
         }
 
-        // Update Vault Goal
-        const totalStolen = getTotalStolen();
-        const pct = Math.min(100, (totalStolen / GOAL_AMOUNT) * 100);
-        document.getElementById("vault-amount").textContent =
-          `$${totalStolen.toLocaleString()} / $100,000`;
-        document.getElementById("vault-bar-fill").style.width = `${pct}%`;
+        // --- turn order ---
+        $("turn-order").innerHTML = TURN_ORDER.map(id => {
+          const f = getFig(id);
+          const cls = [
+            "order-pill", ROLE_OF[id],
+            !sandboxMode && playing && act.id === id && !g.gameOver ? "active" : "",
+            f.permanentlyJailed ? "out" : ""
+          ].join(" ");
+          return `<div class="${cls}">${id}</div>`;
+        }).join("");
 
-        // Update HUD Figure Cards
-        hudFiguresEl.innerHTML = "";
-        for (const fig of figures) {
-          const isTurn = sandboxMode ? (fig.id === sandboxSelectedId) : (fig.id === active.id);
-          const card = document.createElement("div");
-          const roleClass = isTurn ? ` ${fig.role}-turn` : "";
-          card.className = `figure-card${isTurn ? " active-turn" + roleClass : ""}`;
-          const sub = getSpaceSubInfo(fig.space, fig);
+        // --- figures ---
+        $("figures").innerHTML = g.figures
+          .slice()
+          .sort((a, b) => TURN_ORDER.indexOf(a.id) - TURN_ORDER.indexOf(b.id))
+          .map(f => {
+            const isTurn = sandboxMode ? f.id === sandboxSelectedId : (playing && f.id === act.id && !g.gameOver);
+            const owner = playerById(state.seats[f.id]);
+            const jailed = f.permanentlyJailed || f.jailedTurns > 0;
+            let loc = formatSpaceLabel(f.space);
+            let locCls = HEISTS[f.space] ? "heist" : "";
+            if (f.permanentlyJailed) { loc = "Locked up for good"; locCls = "jail"; }
+            else if (f.jailedTurns > 0) { loc = "In jail — loses next turn"; locCls = "jail"; }
+            const ownerHtml = isOnline() && owner
+              ? `<span class="online ${owner.online ? "" : "off"}"></span><span class="owner">${esc(owner.name)}</span>${owner.id === myId ? '<span class="you-tag">YOU</span>' : ""}`
+              : "";
+            const side = f.role === "thief"
+              ? `<div class="fig-cash">${money(f.stolen)}</div>
+                 <div class="strikes" title="Arrests: ${f.captures}/3">${[0, 1, 2].map(i => `<span class="strike ${i < f.captures ? "on" : ""}"></span>`).join("")}</div>`
+              : `<div class="fig-cash" style="color:#93c5fd">🚓</div>`;
+            return `
+              <div class="fig ${f.role} ${isTurn ? "active" : ""} ${jailed ? "jailed" : ""} ${sandboxMode ? "clickable" : ""}" data-fig="${f.id}">
+                <div class="fig-dot ${f.id.toLowerCase()}">${f.id}</div>
+                <div class="fig-main">
+                  <div class="fig-name">${f.role === "police" ? "Police" : "Thief"} ${ownerHtml}</div>
+                  <div class="fig-loc ${locCls}">${esc(loc)}</div>
+                </div>
+                <div class="fig-side">${side}</div>
+              </div>`;
+          }).join("");
 
-          card.innerHTML = `
-            <div class="figure-dot ${fig.role} ${fig.id.toLowerCase()}">${fig.id}</div>
-            <div class="figure-info">
-              <div class="figure-pos">${formatSpaceLabel(fig.space)}</div>
-              <div class="figure-heist ${sub.cls}">${sub.text}</div>
-            </div>
-            ${isTurn ? '<span class="turn-tag">TURN</span>' : ""}
-          `;
-
-          card.addEventListener("click", () => {
-            if (!sandboxMode) return;
-            sandboxSelectedId = sandboxSelectedId === fig.id ? null : fig.id;
-            render();
-          });
-
-          hudFiguresEl.appendChild(card);
+        // --- log ---
+        const logEl = $("log");
+        if (!g.log.length) {
+          logEl.innerHTML = '<li class="system">No moves yet.</li>';
+        } else {
+          logEl.innerHTML = g.log.slice().reverse().map(e => `<li class="${e.kind}">${esc(e.text)}</li>`).join("");
         }
+
+        // --- overlays ---
+        renderLobby();
+        renderVictory();
+        $("btn-menu-resume").style.display = net.mode !== "menu" ? "" : "none";
       }
 
-      // Controls
-      rollBtn.addEventListener("click", rollDice);
-      document.getElementById("btn-roll-side").addEventListener("click", rollDice);
-      document.getElementById("btn-reset").addEventListener("click", resetGame);
-      document.getElementById("btn-play-again").addEventListener("click", resetGame);
-
-      const sandboxBtn = document.getElementById("btn-sandbox");
-      sandboxBtn.addEventListener("click", () => {
-        sandboxMode = !sandboxMode;
-        sandboxBtn.textContent = sandboxMode ? "Sandbox: On" : "Sandbox: Off";
-        sandboxBtn.classList.toggle("btn-active-mode", sandboxMode);
-        document.getElementById("turn-instruction").textContent = sandboxMode
-          ? "Sandbox Mode: Click or drag any figure freely"
-          : "Roll the dice (0, 1, 1, 2, 2, 3) to move the active figure";
-        if (sandboxMode) {
-          setLog("Sandbox Mode active — drag & drop or click any figure to move freely.");
-        } else {
-          const active = getActiveFigure();
-          setLog(`${active.id}'s turn — Roll the dice!`);
+      function renderLobby() {
+        const inLobby = isOnline() && state.phase === "lobby";
+        if (!inLobby) {
+          hide("lobby-screen");
+          return;
         }
+        if (!isShown("menu-screen") && !isShown("rules-screen")) show("lobby-screen");
+        $("lobby-code").textContent = net.code || state.code || "-----";
+
+        $("lobby-players").innerHTML = state.players.map(p => `
+          <span class="player-chip">
+            <span class="online ${p.online ? "" : "off"}"></span>
+            ${p.host ? '<span class="crown" title="Host">👑</span>' : ""}
+            ${esc(p.name)}${p.id === myId ? " (you)" : ""}
+          </span>`).join("");
+
+        const seatsEl = $("lobby-seats");
+        seatsEl.innerHTML = TURN_ORDER.map(s => {
+          const ownerId = state.seats[s];
+          const owner = playerById(ownerId);
+          const mine = ownerId === myId;
+          const role = ROLE_OF[s];
+          const ownerText = owner ? `${esc(owner.name)}${mine ? " (you)" : ""}` : "Open — tap to take";
+          return `
+            <button class="seat ${role} ${mine ? "mine" : ""}" data-seat="${s}">
+              <div class="fig-dot ${s.toLowerCase()}">${s}</div>
+              <div class="s-info">
+                <div class="s-role">${role === "police" ? "🚓 Police" : "🦹 Thief"} ${s.slice(1)}</div>
+                <div class="s-owner ${owner ? "" : "open"}">${ownerText}</div>
+              </div>
+            </button>`;
+        }).join("");
+
+        const startBtn = $("btn-start");
+        startBtn.style.display = net.mode === "host" ? "" : "none";
+        const others = state.players.filter(p => !p.host).length;
+        $("lobby-wait").textContent = net.mode === "host"
+          ? (others === 0 ? "Share the code — waiting for players to join…" : `${others + 1} players ready.`)
+          : "Waiting for the host to start…";
+      }
+
+      function renderVictory() {
+        const g = state.game;
+        if (!(state.phase === "playing" && g.gameOver && g.winner) || victoryDismissed) {
+          hide("victory-screen");
+          return;
+        }
+        const w = g.winner;
+        $("victory-card").className = `modal victory ${w.team}`;
+        $("victory-emoji").textContent = w.team === "police" ? "🚔" : "💰";
+        $("victory-title").textContent = w.title;
+        $("victory-text").textContent = w.text;
+        $("btn-play-again").style.display = isAuthority() ? "" : "none";
+        $("victory-wait").textContent = isAuthority() ? "" : "Waiting for the host to start a new round…";
+        if (!isShown("menu-screen")) show("victory-screen");
+      }
+
+      // =====================================================================
+      // 11. Controls
+      // =====================================================================
+      function tryRoll() {
+        if (canIAct() && Date.now() >= rollAnimUntil) dispatch({ type: "roll" });
+      }
+
+      $("btn-roll").addEventListener("click", tryRoll);
+
+      document.addEventListener("keydown", (e) => {
+        if (e.target.tagName === "INPUT" || e.repeat) return;
+        if (e.key === "Escape") {
+          if (isShown("rules-screen")) hide("rules-screen");
+          else if (isShown("menu-screen") && net.mode !== "menu") { hide("menu-screen"); render(); }
+          return;
+        }
+        if (document.querySelector(".overlay.show")) return;
+        if (e.code === "Space" || e.key === "r" || e.key === "R") {
+          e.preventDefault();
+          tryRoll();
+        }
+      });
+
+      $("figures").addEventListener("click", (e) => {
+        const card = e.target.closest("[data-fig]");
+        if (!card || !sandboxMode) return;
+        const id = card.dataset.fig;
+        sandboxSelectedId = sandboxSelectedId === id ? null : id;
         render();
       });
 
-      const toggleCoordsBtn = document.getElementById("btn-toggle-coords");
-      toggleCoordsBtn.addEventListener("click", () => {
-        const hidden = svg.classList.toggle("hide-coords");
-        toggleCoordsBtn.textContent = hidden ? "Show Coords" : "Hide Coords";
+      $("lobby-seats").addEventListener("click", (e) => {
+        const btn = e.target.closest("[data-seat]");
+        if (!btn) return;
+        const seat = btn.dataset.seat;
+        if (net.mode === "host") {
+          if (claimSeat(myId, seat)) commit();
+        } else if (net.mode === "guest" && net.hostConn && net.hostConn.open) {
+          net.hostConn.send({ t: "claim", seat });
+        }
       });
 
-      resetGame();
+      $("btn-start").addEventListener("click", () => {
+        if (net.mode !== "host") return;
+        startMatch();
+        commit();
+      });
+
+      function restartGame() {
+        if (!isAuthority()) return;
+        state.game = freshGame();
+        state.phase = "playing";
+        sandboxSelectedId = null;
+        addLog("🔁 New round — Police 1 moves first.", "system");
+        commit();
+      }
+
+      $("btn-restart").addEventListener("click", () => {
+        if (confirm("Restart the game? All progress will be lost.")) restartGame();
+      });
+      $("btn-play-again").addEventListener("click", restartGame);
+      $("btn-victory-board").addEventListener("click", () => {
+        victoryDismissed = true;
+        render();
+      });
+      $("btn-victory-menu").addEventListener("click", () => openMenu());
+
+      $("btn-sandbox").addEventListener("click", () => {
+        if (net.mode !== "local") return;
+        sandboxMode = !sandboxMode;
+        sandboxSelectedId = null;
+        toast(sandboxMode ? "🧪 Sandbox on — drag figures freely" : "Sandbox off — back to turns");
+        render();
+      });
+
+      $("btn-toggle-coords").addEventListener("click", () => {
+        const hidden = svg.classList.toggle("hide-coords");
+        $("btn-toggle-coords").classList.toggle("btn-on", !hidden);
+      });
+
+      $("btn-rules").addEventListener("click", () => show("rules-screen"));
+      $("btn-menu-rules").addEventListener("click", () => show("rules-screen"));
+      $("btn-rules-close").addEventListener("click", () => hide("rules-screen"));
+      $("rules-screen").addEventListener("click", (e) => { if (e.target.id === "rules-screen") hide("rules-screen"); });
+
+      function openMenu() {
+        hide("victory-screen");
+        hide("lobby-screen");
+        menuStatus(isOnline() ? "You're still in a match — starting or joining another will leave it." : "");
+        show("menu-screen");
+      }
+
+      $("btn-menu").addEventListener("click", openMenu);
+      $("btn-menu-resume").addEventListener("click", () => {
+        hide("menu-screen");
+        menuStatus("");
+        render();
+      });
+
+      $("btn-lobby-leave").addEventListener("click", () => {
+        leaveSession();
+        state = freshState();
+        hide("lobby-screen");
+        menuStatus("");
+        show("menu-screen");
+        render();
+      });
+
+      $("btn-local").addEventListener("click", startLocal);
+      $("btn-host").addEventListener("click", () => createMatch());
+      $("btn-join").addEventListener("click", () => joinMatch($("code-input").value));
+      $("code-input").addEventListener("input", (e) => { e.target.value = normalizeCode(e.target.value); });
+      $("code-input").addEventListener("keydown", (e) => { if (e.key === "Enter") joinMatch(e.target.value); });
+
+      $("match-chip").addEventListener("click", () => copyText(inviteLink(), "Invite link"));
+      $("btn-copy-code").addEventListener("click", () => copyText(net.code, "Match code"));
+      $("btn-copy-link").addEventListener("click", () => copyText(inviteLink(), "Invite link"));
+
+      window.addEventListener("beforeunload", (e) => {
+        if (net.mode === "host" && state.phase === "playing") {
+          e.preventDefault();
+          e.returnValue = "";
+        }
+      });
+
+      // Invite links: ?join=CODE
+      const joinParam = normalizeCode(new URLSearchParams(location.search).get("join"));
+      if (joinParam) {
+        $("code-input").value = joinParam;
+        menuStatus(`Invited to match ${joinParam} — set your name and press Join.`);
+        setTimeout(() => $("btn-join").focus(), 50);
+      }
+
+      onStateUpdated();
     })();
   </script>
 </body>
